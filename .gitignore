@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+# Node
+node_modules/
+.vite/
+# Rust / Tauri
+target/
+# Local data, secrets, OS
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+.env
+.env.*
+.DS_Store
