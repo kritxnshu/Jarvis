@@ -6,7 +6,7 @@ This file holds the planned slice order. Every milestone ends with a report and 
 ## v0.1 — Trusted core
 
 - [x] **M0 — Assessment and plan** (docs, ADRs; no feature code)
-- [~] **M1 — Walking skeleton** (all slices built; macOS .app build/verification pending)
+- [x] **M1 — Walking skeleton** (macOS CI: check passed and .app built; manual run on a Mac pending)
   1. Python project + `scripts/check.sh` / `pnpm check` (ruff, pyright, pytest, secret scanner) — green on empty suite.
   2. Runtime: stdin handshake, UDS server (0700 dir / 0600 socket), bearer secret (constant-time),
      peer-UID check, stdin-EOF watchdog. Security tests: no TCP/UDP listener, missing/wrong secret,
@@ -20,7 +20,7 @@ This file holds the planned slice order. Every milestone ends with a report and 
   7. Settings screen round-trip UI → Rust → backend; Vitest for the bridge client.
   8. Sidecar freezing (PyInstaller) + `.app` build on macOS; launch test; `lsof`/`ps` checks on macOS.
   9. Contract generation (JSON Schema → TS) with staleness check.
-- [ ] **M2 — Trust kernel**: tool contract, executor + write-ahead intents + recovery, policy/grants,
+- [x] **M2 — Trust kernel** (native dialog awaiting manual verification): tool contract, executor + write-ahead intents + recovery, policy/grants,
       approval queue + native confirm, hash-chained audit, receipts, Security Center; single-step tasks.
 - [ ] **M3 — Conversation and providers**: normalized model interface, 4 adapters, Keychain, routing/fallback,
       streaming chat + persistence + stop, Provider Settings and Command Center.

@@ -1,7 +1,7 @@
 # Architecture
 
-> **Status (M1):** sections 1–3, 7 (settings only) and 8 are implemented; sections 4–6 and the rest
-> of 7 are design for M2+. Decisions: [docs/adr/](docs/adr/). Requirements: [docs/BRIEF.md](docs/BRIEF.md) §5.
+> **Status (M2):** sections 1–8 are implemented except vector/FTS search (M4) and the Keychain
+> (M3). Code pointers: executor `backend/src/jarvis/execution/`, trust `backend/src/jarvis/trust/`. Decisions: [docs/adr/](docs/adr/). Requirements: [docs/BRIEF.md](docs/BRIEF.md) §5.
 
 ## 1. Process model
 

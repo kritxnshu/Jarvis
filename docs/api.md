@@ -24,7 +24,27 @@ Served by `backend/src/jarvis/api/app.py` over the Unix socket. Requirements: BR
 | PUT | `/v1/settings/{key}` | body `SettingUpdate {value}` → `Setting`; `404 unknown_setting`, `422 invalid_setting_value` / `invalid_request` |
 | GET | `/v1/events` | `application/x-ndjson` stream of `EventEnvelope {type, id, ts, task_id, schema_version, payload}` |
 
-Event types today: `system.stream_opened`, `system.heartbeat` (every 15 s idle), `settings.changed`.
+### Trust kernel (M2)
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/v1/tasks` | `{tool, params, objective}` → `ExecutionView`. Runs one single-step task through the executor. **Not** on the bridge allowlist (the UI starts no tool runs yet). |
+| GET | `/v1/tasks` | `TaskList` (newest first) |
+| GET | `/v1/tasks/{id}` | `TaskDetail {task, receipt}` |
+| POST | `/v1/tasks/{id}/review` | `{action_id, choice: happened\|retry\|cancel}` for Needs review; `happened` ⇒ user-attested, `retry` ⇒ new approval |
+| GET | `/v1/approvals` | pending approvals (expired ones are swept first) |
+| GET | `/v1/approvals/{id}` | one approval incl. digest and request text |
+| POST | `/v1/approvals/{id}/decision` | `{approve, native_confirmation?}`; highest-risk needs the HMAC token only the Rust shell can compute; refusals are 403 and audited. The generic bridge refuses bodies containing `native_confirmation`. |
+| POST | `/v1/audit/search` | `{type_prefix?, task_id?, text?, limit?, before_seq?}` → `AuditEntries` |
+| GET | `/v1/audit/verify` | `{ok, entries, first_bad_seq, reason}` |
+| GET | `/v1/audit/export/{json\|csv}` | `{format, content}` (complete, redacted). Reached by the UI only via the `save_audit_export` command |
+| GET/POST | `/v1/grants` | list / add `{scope_type, scope_value, expires_at?}` |
+| POST | `/v1/grants/{id}/revoke` | |
+
+There is no route that creates an approval: only the executor does. Unauthenticated requests are
+audited as `auth.rejected`.
+
+Event types today: `task.updated`, `system.stream_opened`, `system.heartbeat` (every 15 s idle), `settings.changed`.
 The bridge adds `bridge.stream_closed` when the stream ends so the UI can resubscribe.
 
 Registered settings (`config/settings_registry.py`) — only settings something honors:
@@ -34,5 +54,5 @@ TypeScript types for these payloads are generated into `packages/contracts/src/g
 
 ## Planned
 
-`/v1/approvals`, `/v1/audit`, `/v1/tasks` (M2), `/v1/chat`, `/v1/providers` (M3), `/v1/memory` (M4),
+`/v1/chat`, `/v1/providers` (M3), `/v1/memory` (M4),
 `/v1/files` (M5). There will be no route that creates an approval or confirms a memory from model output.

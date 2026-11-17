@@ -74,6 +74,18 @@ All tests below pass on Linux (`pnpm check`). None has been run on macOS yet (AD
 | Redaction before logs; secrets never on disk | `trust/redaction.py`, `runtime/logging_setup.py` | `tests/unit/test_redaction.py`, `test_launch_secret_and_canary_never_written_to_disk` |
 | Repository secret scan | `scripts/secret_scan.py` | `tests/unit/test_secret_scan.py`; runs in `pnpm check` |
 
+### Added in M2 (trust kernel)
+
+| Control | Code | Tests |
+|---|---|---|
+| Approvals bound to SHA-256 action digest, recomputed from the parameters about to run; single-use; 10-minute expiry | `trust/approvals.py`, `execution/executor.py` | `tests/acceptance/test_4_11_approvals.py` (parameter change, replay, expiry) |
+| Highest-risk categories need an HMAC token computed by Rust after a native dialog; the generic bridge strips nothing and refuses bodies carrying a token | `trust/approvals.py`, `src-tauri/src/native_confirm.rs`, `routes.rs` | `test_compromised_ui_cannot_approve_highest_risk_without_native_confirmation`, `native_confirm::tests::*`, `routes::tests::native_confirmation_never_passes_the_generic_bridge`. Dialog itself: **awaiting manual verification** |
+| No code path lets a request create an approval | `api/trust_routes.py` (list/get/decide only) | `test_no_route_creates_or_grants_an_approval_from_model_output` |
+| Write-ahead intents; unknown outcomes are Uncertain, never Failed or Completed; no blind re-runs | `execution/executor.py`, `execution/recovery.py` | `tests/acceptance/test_4_10_receipts_recovery.py` (SIGKILL + restart) |
+| Hash-chained append-only audit log; guard triggers; redaction before write | `trust/audit.py`, migration 0002 | `tests/unit/test_audit.py`, `tests/acceptance/test_4_12_audit.py` |
+| Directory grants resolve symlinks and `..` before comparison | `trust/policy.py` | `tests/unit/test_policy.py` |
+| Test-only tools never in production | `tools/registry.py::build_production_registry`, fixtures under `tests/` | `test_production_registry_contains_no_test_tools` |
+
 ## 6. Reporting
 
 Single-founder project; report issues privately to the repository owner.

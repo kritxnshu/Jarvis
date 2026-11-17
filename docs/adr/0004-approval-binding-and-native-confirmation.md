@@ -26,3 +26,13 @@ highest-risk approvals need a native macOS dialog so webview script can't approv
   the UI) but cannot approve highest-risk actions without the user clicking a native dialog.
 - Test: request with valid secret and no approval → rejected and audited; parameter change →
   digest mismatch; replay → used; expired → refused; high-risk without token → refused.
+
+## Implementation notes (M2, 2026-11-17)
+- The executor recomputes the digest from the parameters it is about to run, so altering stored
+  parameters after approval is refused (`approval_digest_mismatch`), not trusted.
+- Refusals are audited in their own transaction after the failed one rolls back.
+- The approval request text is redacted before storage (found by the canary acceptance test).
+- Rust: `confirm_high_risk_approval` shows an `rfd` dialog on the main thread; the token is
+  pinned across languages by `native_confirm::tests::token_matches_the_python_backend`.
+- The native dialog itself cannot be clicked by automated tests; it is listed for manual
+  verification in IMPLEMENTATION_STATUS.md.

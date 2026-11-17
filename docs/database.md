@@ -18,6 +18,14 @@ Code: `backend/src/jarvis/storage/`. File: `<app data>/jarvis.sqlite3` (mode 060
 |---|---|---|
 | `schema_migrations` | runner | `version INTEGER PK, name TEXT, checksum TEXT (sha256 of the .sql), applied_at TEXT` |
 | `settings` | 0001_settings | `key TEXT PK, value_json TEXT, updated_at TEXT` — only keys in the settings registry are accepted |
+| `tasks` | 0002_trust_kernel | `id, objective (redacted), state (BRIEF §4.9 states), state_reason, created_at, updated_at` |
+| `actions` | 0002 | `id, task_id, tool, tool_version, params_json (redacted), digest, idempotency_key, risk, category, recovery, state, attempts, approval_id, output_json, error, verification_json, timestamps` |
+| `action_intents` | 0002 | write-ahead intent committed before execution: `id, action_id, attempt, digest, idempotency_key, started_at` |
+| `action_outcomes` | 0002 | `intent_id PK, action_id, outcome (completed/failed/uncertain), detail_json, finished_at`; an intent without an outcome after restart ⇒ Uncertain |
+| `approvals` | 0002 | `id, action_id, digest, category, highest_risk, request_json (redacted), status (pending/approved/rejected/expired/used), created_at, expires_at, decided_at, native_confirmed, used_at` |
+| `permission_grants` | 0002 | `id, scope_type (directory/domain/command_class/tool), scope_value (directories stored realpath'd), created_at, expires_at, revoked_at` |
+| `audit_log` | 0002 | `seq PK, ts, type, actor, task_id, payload_json (redacted), prev_hash, hash`; triggers refuse UPDATE/DELETE; hash = SHA-256(prev_hash ‖ canonical entry) |
+| `receipts` | 0002 | `task_id PK, receipt_json, updated_at` — rebuilt from recorded rows on every task change |
 
 Migrations run inside one transaction each (script + bookkeeping row), so a failing migration
 leaves no partial schema (`tests/unit/test_migrator.py`).
@@ -26,14 +34,6 @@ leaves no partial schema (`tests/unit/test_migrator.py`).
 
 | Table | Milestone | Purpose |
 |---|---|---|
-| `tasks` | M2 | objective, state (BRIEF §4.9 states), reason, timestamps |
-| `actions` | M2 | task_id, tool, digest, idempotency_key, state, recovery strategy |
-| `action_intents` | M2 | write-ahead intent: action_id, digest, idempotency key, started_at |
-| `action_outcomes` | M2 | action_id, outcome JSON, completed_at, verification evidence |
-| `approvals` | M2 | action digest, category, request text, expires_at, decided_at, decision, used_at, native_confirmed |
-| `permission_grants` | M2 | scope type (dir/domain/command class), scope value, expires_at |
-| `audit_log` | M2 | seq, ts, type, actor, payload (redacted), prev_hash, hash |
-| `receipts` | M2 | task_id, JSON receipt |
 | `conversations`, `messages` | M3 | history; messages have status (complete/interrupted), provider, model |
 | `providers`, `routes` | M3 | provider config (no keys; Keychain ref only), per-task routing, fallback order |
 | `memories`, `memory_events` | M4 | text, type, origin, status, source_ref, confirmed_by/at, supersedes |

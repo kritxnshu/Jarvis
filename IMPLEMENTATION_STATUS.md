@@ -3,91 +3,88 @@
 Status vocabulary (BRIEF §3): Not started · In progress · Implemented · Tested · Verified ·
 Tested — awaiting manual verification · Blocked.
 
-"Tested" below means automated tests pass **on Linux** (this cloud session). Nothing has been run
-on macOS yet, so nothing is Verified (ADR-0010).
+"Tested" means automated tests pass in this cloud session (Linux) **and** the macOS CI job's
+`pnpm check` step passed (GitHub Actions, macos-15, run 44089303217, commit b2db164). Per-test
+counts on macOS could not be read from here (the log host is blocked by the session proxy); the
+workflow now prints a summary as its last step. Nothing is **Verified** until run on a real Mac by
+a person where the brief needs it.
 
-_Last updated: 2026-11-17 (M1 built; awaiting macOS build and founder review)._
+_Last updated: 2026-11-17 (end of M2)._
 
 ## Capabilities
 
-No capability work has started: M1 is infrastructure. All twelve remain **Not started**.
+| #    | Capability                                   | Release | Status | Evidence (all via `pnpm check`) | Last run | Blockers |
+|------|----------------------------------------------|---------|--------|----------------------------------|----------|----------|
+| 4.1  | Conversation — text                          | v0.1 | Not started | — | — | — |
+| 4.1  | Conversation — voice                         | v0.3 | Not started | — | — | — |
+| 4.2  | Persistent, editable personal memory         | v0.1 | Not started | — | — | — |
+| 4.3  | Model provider switching                     | v0.1 | Not started | — | — | Live smoke tests need a key or Ollama |
+| 4.4  | Browser navigation and automation            | v0.3 | Not started | — | — | — |
+| 4.5  | Desktop observation                          | v0.3 | Not started | — | — | — |
+| 4.6  | Authorized file search and management        | v0.1 | Not started | (directory grants + path resolution exist: `tests/unit/test_policy.py`) | — | — |
+| 4.7  | Controlled terminal execution                | v0.2 | Not started | — | — | — |
+| 4.8  | Multi-step task planning                     | v0.2 | Not started | — | — | — |
+| 4.9  | Background task persistence                  | v0.2 | In progress | Transition tables tested exhaustively (`tests/unit/test_states.py`, 222 cases: every task and action state pair plus invariants); restart rule Running→Paused("interrupted") in `execution/recovery.py`, exercised by the crash tests | 2026-11-17 | Queue/checkpoints/resume are M7 |
+| 4.10 | Receipts & uncertain-action recovery (v0.1 part) | v0.1 | Tested | `tests/acceptance/test_4_10_receipts_recovery.py` (11): completed-not-verified, unverifiable label, real recorded values, timeout⇒Uncertain⇒reconciled with exactly one effect, manual⇒Needs review⇒user-attested, retry⇒approval, SIGKILL after intent (manual: no re-run; reconcilable: one effect; idempotent: same key, one effect), crash mid-write and mid cross-volume move. File-operation receipts (hashes) need the M5 file tool | 2026-11-17 | — |
+| 4.11 | Approval interface | v0.1 | Tested — awaiting manual verification | `tests/acceptance/test_4_11_approvals.py` (8): compromised UI (valid secret, no/forged native token) refused + audited, native token path runs once, reject never runs, parameter change after approval refused, replay refused, expiry refused, no route creates approvals. Rust: `native_confirm::tests` (5, incl. cross-language token vector), `routes::tests::native_confirmation_never_passes_the_generic_bridge`. UI: `TrustScreens.test.tsx` | 2026-11-17 | The native macOS dialog must be clicked by a person (step 8 below) |
+| 4.12 | Task history and audit logs | v0.1 | Tested | `tests/acceptance/test_4_12_audit.py` (3): every one of the 22 event types appears in one end-to-end run (incl. crash + recovery), chain verifies, tampering detected after restart, canary + launch secrets absent from DB/logs/exports; `tests/unit/test_audit.py` (11); timeline UI `TrustScreens.test.tsx` | 2026-11-17 | — |
 
-| #    | Capability                                   | Release              | Status      | Evidence | Last verified | Blockers |
-|------|----------------------------------------------|----------------------|-------------|----------|---------------|----------|
-| 4.1  | Conversation — text                          | v0.1                 | Not started | —        | —             | —        |
-| 4.1  | Conversation — voice                         | v0.3                 | Not started | —        | —             | —        |
-| 4.2  | Persistent, editable personal memory         | v0.1                 | Not started | —        | —             | —        |
-| 4.3  | Model provider switching                     | v0.1                 | Not started | —        | —             | Live smoke tests need a key or Ollama (contract tests use fixtures) |
-| 4.4  | Browser navigation and automation            | v0.3                 | Not started | —        | —             | —        |
-| 4.5  | Desktop observation with explicit permission | v0.3                 | Not started | —        | —             | —        |
-| 4.6  | Authorized file search and management        | v0.1                 | Not started | —        | —             | —        |
-| 4.7  | Controlled terminal execution                | v0.2                 | Not started | —        | —             | —        |
-| 4.8  | Multi-step task planning                     | v0.2                 | Not started | —        | —             | —        |
-| 4.9  | Background task persistence                  | v0.2                 | Not started | —        | —             | —        |
-| 4.10 | Execution verification and receipts          | v0.1 / v0.2 / v0.3   | Not started | —        | —             | —        |
-| 4.11 | Approval interface for consequential actions | v0.1                 | Not started | —        | —             | —        |
-| 4.12 | Complete task history and audit logs         | v0.1                 | Not started | —        | —             | —        |
+## Milestones
 
-## M1 — Walking skeleton
-
-Command for all evidence: `pnpm check` (last run 2026-11-17, Linux x86_64: all steps passed —
-Python 84 passed; Vitest 38 passed; Rust 7 unit + 5 e2e passed; desktop app 6 passed; frozen sidecar 1 passed).
-
-| Done-when item | Status | Evidence |
+| Milestone | State | Evidence |
 |---|---|---|
-| App launches; a UI request round-trips through the bridge to the backend | Tested (Linux) | `tests/desktop/test_desktop_app.py::test_webview_requests_reach_the_backend` (real app, real webview under Xvfb: the UI's `GET /v1/health` and `GET /v1/settings` arrive with 200); `src-tauri/tests/bridge_e2e.rs::health_and_settings_round_trip_and_survive_restart`; screenshot of the running app showing "Core connected · core 0.1.0.dev0" |
-| Settings survive a restart | Tested (Linux) | `tests/integration/test_backend_roundtrip.py::test_settings_survive_restart`, `bridge_e2e::health_and_settings_round_trip_and_survive_restart`, `test_frozen_sidecar.py`; UI: `App.test.tsx` "Preferences round trip" (fake bridge) |
-| §5.2: no TCP/UDP port (lsof) | Tested (Linux, via /proc) | `test_backend_opens_no_tcp_or_udp_socket`, `test_no_tcp_or_udp_listeners_on_app_or_backend`. The macOS path uses `lsof` and has not run |
-| §5.2: missing or wrong secret rejected | Tested (Linux) | `test_requests_without_valid_secret_are_rejected[missing,wrong,wrong-scheme,empty]`, `bridge_e2e::wrong_secret_is_rejected`, `test_backend_rejects_requests_without_the_apps_secret` |
-| §5.2: secret not in argv/env of either process (ps) | Tested (Linux, via /proc) | `test_secret_not_in_process_arguments_or_environment`, `bridge_e2e::secret_is_not_in_backend_argv_or_environment`, `test_no_secret_in_process_listings` (both processes) |
-| §5.2: killing the Tauri process makes the backend exit | Tested (Linux) | `test_killing_the_app_stops_the_backend` (SIGKILL on the real app; backend gone in < 5 s, observed 0.23 s manually), `test_backend_exits_when_parent_is_killed` |
-| §5.2: webview can't load a remote script or call commands outside its allowlist | Tested (static config) — awaiting manual verification | `tests/security/test_webview_config.py` (11 tests: CSP, capabilities, registered commands, no plugins). Runtime proof inside WKWebView not automated; manual steps below |
-| Settings persisted in SQLite with migrations | Tested | `tests/unit/test_migrator.py` (6), `tests/unit/test_settings_service.py` |
-| Structured JSON logging with redaction | Tested | `tests/unit/test_redaction.py`, `test_launch_secret_and_canary_never_written_to_disk`, `test_requests_are_logged_without_bodies` |
-| Check command | Tested | `pnpm check` green as above |
-| Packaged macOS .app | **Not started on macOS** | Linux proxy only: frozen sidecar (`test_frozen_sidecar.py`) and a packaged debug build that launches it (manual run + desktop tests passed). CI job `macos` in `.github/workflows/ci.yml` builds the .app but has never run |
+| M1 — Walking skeleton | Done (manual Mac run pending) | Linux: desktop app under Xvfb (6 tests); macOS CI: `pnpm check` passed (incl. desktop app tests run on macOS) and `JARVIS-macos-arm64.zip` (22.8 MB, unsigned) built — artifact expires 2026-12-01 |
+| M2 — Trust kernel | Done (native dialog awaiting manual verification) | see 4.10/4.11/4.12 above; last local `pnpm check`: Python 352 passed, Vitest 45 passed, Rust 14 unit + 5 e2e passed, desktop 6 passed, frozen sidecar 1 passed |
+
+M1 details (each item Tested on Linux; covered by the macOS CI check run):
+app launch + UI→Rust→backend round trip (`test_webview_requests_reach_the_backend`), settings survive
+restart, no TCP/UDP listener, missing/wrong secret rejected, secret absent from argv/env of both
+processes, backend exits when the app is SIGKILLed, strict CSP + 5-command capability
+(`tests/security/test_webview_config.py`), JSON logging with redaction, frozen PyInstaller sidecar.
 
 ## Project facts (BRIEF §0)
 
 | Fact | Value | Consequence until known |
 |---|---|---|
 | Repository | `kritxnshu/Jarvis`, started empty | — |
-| Development machine | **Unknown** (founder travelling without the Mac) | macOS builds via CI; arm64 assumed |
+| Development machine | **Unknown**; founder travelling without the Mac | macOS evidence comes from CI (arm64 runner) |
 | Model API keys | **Unknown** | Providers will show "Not configured" (M3) |
 | Local models (Ollama) | **Unknown** | Ollama adapter will show "unreachable" |
-| Voice provider accounts | **Unknown** | v0.3 |
-| Apple Developer ID | **Unknown** | Unsigned/ad-hoc builds; Gatekeeper warns; no notarization |
-| Cloud session | Linux x86_64 (Python 3.13.18, uv 0.11.32, Node 22.23.4, pnpm 10.28.0, Rust 1.97.0) | macOS-only steps can't run here |
+| Apple Developer ID | **Unknown** | Unsigned build; Gatekeeper warns; no notarization |
 
-## Manual verification steps for the founder (macOS)
+## Manual verification steps for the founder (on a Mac)
 
-1. On GitHub: Actions → **ci** → **Run workflow** on branch `claude/jarvis-macos-ai-os-aiyqsh`.
-   The `macos` job runs `pnpm check` on macOS and uploads `JARVIS-macos-arm64.zip`.
-2. On the Mac: unzip, then `xattr -dr com.apple.quarantine JARVIS.app` (it is unsigned), open it.
-   Expect the status bar to say **Core connected** with a version.
+1. GitHub → Actions → **ci** → the latest successful run → download **JARVIS-macos-arm64** (or Run
+   workflow on branch `claude/jarvis-macos-ai-os-aiyqsh` to build a fresh one).
+2. Unzip, run `xattr -dr com.apple.quarantine JARVIS.app` (unsigned build), open it. Expect the
+   status bar to say **Core connected** with a version.
 3. Preferences → Motion → "Reduce motion"; quit (⌘Q) and reopen: the choice is kept.
-4. In Terminal while it runs: `lsof -nP -a -p "$(pgrep -f JARVIS.app | paste -sd, -)" -i` prints nothing
-   (no network sockets; WebKit helper processes are separate and not counted).
+4. `lsof -nP -a -p "$(pgrep -f JARVIS.app | paste -sd, -)" -i` prints nothing.
 5. `ps -E -ww -o command= -p $(pgrep jarvis-backend)` shows no 64-character hex string.
 6. `pkill -9 -f JARVIS.app/Contents/MacOS/`; within a few seconds `pgrep jarvis-backend` prints nothing.
-7. Webview runtime check (needs a debug build: `pnpm --filter @jarvis/desktop dev`, then right-click →
-   Inspect → Console): `await import("https://example.com/x.js")` must fail with a CSP error, and
-   `window.__TAURI_INTERNALS__.invoke("plugin:shell|execute", {})` must be rejected as not allowed.
+7. Dev build only (`pnpm --filter @jarvis/desktop dev`, right-click → Inspect → Console):
+   `await import("https://example.com/x.js")` fails with a CSP error, and
+   `window.__TAURI_INTERNALS__.invoke("plugin:shell|execute", {})` is rejected as not allowed.
+8. Native confirmation dialog: needs a highest-risk tool, and production has none until later
+   milestones. Dev-only way to see it: run the fixture backend (instructions to be added with the
+   first real highest-risk tool). Until then 4.11 stays "awaiting manual verification".
 
 ## Known limitations
 
-- Peer-UID check on macOS (`LOCAL_PEERCRED`) is written but has never executed.
-- The webview runtime CSP/command-allowlist check is static on Linux; step 7 above covers it.
-- `sandbox-exec`, Keychain and code signing are not touched yet (later milestones).
+- The UI cannot start tasks yet (no production tools; `POST /v1/tasks` is not on the bridge allowlist).
+- Approval expiry is fixed at 10 minutes (no "approval settings" UI yet).
+- Orphaned `.jarvis-tmp` files from a crash mid-write are left in place (never mistaken for the
+  real file); cleanup arrives with the file tool in M5.
+- `sandbox-exec`, Keychain and code signing are not touched yet.
 
 ## Current position
 
 - **Release:** v0.1 — Trusted core
-- **Milestone:** M1 — Walking skeleton — built and Tested on Linux; macOS build not yet run.
+- **Milestone:** M2 — Trust kernel — complete apart from the manual native-dialog check.
 - **In progress:** nothing.
 
 ## Next step
 
-Founder: run the macOS CI job (step 1 above) when convenient. Engineering: M2 — Trust kernel,
-slice 1: tool contract (`jarvis/tools/contract.py`) + action digest (canonical JSON SHA-256) with tests,
-then the executor with write-ahead intents (ADR-0005).
+M3 — Conversation and providers, slice 1: normalized model interface
+(`jarvis/providers/types.py`: Message, ToolSpec, ToolCall, StreamDelta, Usage, ProviderError) and
+the recorded-fixture contract-test harness (`httpx.MockTransport`), then the Anthropic adapter.

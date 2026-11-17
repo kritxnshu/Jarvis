@@ -60,6 +60,8 @@ Additional dependencies and why:
 | serde, serde_json | Rust | 1.0.229 / 1.0.154 | bridge payloads (already used by Tauri) |
 | getrandom | Rust | 0.3.4 | OS CSPRNG for the launch secret and run-dir id |
 | tempfile | Rust dev | 3.27.0 | temporary directories in tests |
+| hmac, sha2 | Rust | 0.12 / 0.10 | native-confirmation token (HMAC-SHA256), mirrors the Python backend (ADR-0004) |
+| rfd | Rust | 0.15.4 | native macOS dialogs from Rust only (approval confirmation, audit export save); 0.16+ conflicts with Tauri's GTK on Linux |
 | @tailwindcss/vite | TS dev | 4.3.5 | Tailwind v4's Vite integration |
 | @vitejs/plugin-react | TS dev | 6.3.0 | React JSX/refresh for Vite |
 | @eslint/js, typescript-eslint, eslint-plugin-react-hooks, globals | TS dev | 10.0.1 / 8.73.0 / 7.1.1 / 17.14.0 | ESLint configuration for strict type-checked TS and hooks rules |
