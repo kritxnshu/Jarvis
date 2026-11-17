@@ -86,6 +86,15 @@ All tests below pass on Linux (`pnpm check`). None has been run on macOS yet (AD
 | Directory grants resolve symlinks and `..` before comparison | `trust/policy.py` | `tests/unit/test_policy.py` |
 | Test-only tools never in production | `tools/registry.py::build_production_registry`, fixtures under `tests/` | `test_production_registry_contains_no_test_tools` |
 
+### Added in M3 (providers and conversation)
+
+| Control | Code | Tests |
+|---|---|---|
+| API keys only in the Keychain; DB stores a masked hint; no route reads a key back; keys registered with the redactor on save and at startup | `trust/secrets.py`, `providers/registry.py`, bridge allowlist | `test_saved_key_is_masked_and_never_stored_or_exported`, `test_without_an_os_keychain_keys_are_refused_not_stored_elsewhere`, `test_keys_go_to_the_macos_keychain` (macOS), `routes::tests::conversation_and_provider_routes` |
+| Keys travel only in headers, never URLs | `providers/adapters/*` | `test_streams_text_deltas_usage_and_done` (all adapters) |
+| Fallback never switches providers after output has started | `core/routing.py` | `test_fallback_on_provider_failure_is_used_and_audited` |
+| Retention policy shown as text; the webview never navigates to provider sites | `ProviderSettings.tsx`, CSP | `ChatScreens.test.tsx`, `test_webview_config.py` |
+
 ## 6. Reporting
 
 Single-founder project; report issues privately to the repository owner.

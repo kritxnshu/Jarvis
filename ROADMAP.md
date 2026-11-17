@@ -22,7 +22,7 @@ This file holds the planned slice order. Every milestone ends with a report and 
   9. Contract generation (JSON Schema → TS) with staleness check.
 - [x] **M2 — Trust kernel** (native dialog awaiting manual verification): tool contract, executor + write-ahead intents + recovery, policy/grants,
       approval queue + native confirm, hash-chained audit, receipts, Security Center; single-step tasks.
-- [ ] **M3 — Conversation and providers**: normalized model interface, 4 adapters, Keychain, routing/fallback,
+- [x] **M3 — Conversation and providers** (live provider smoke test pending): normalized model interface, 4 adapters, Keychain, routing/fallback,
       streaming chat + persistence + stop, Provider Settings and Command Center.
 - [ ] **M4 — Memory**: history + memories, confirmation rules, FTS5 + vector retrieval, Memory Center.
 - [ ] **M5 — Files + v0.1 release**: file tool via executor, Skills Center, Activity Center, release checklist.

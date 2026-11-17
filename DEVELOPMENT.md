@@ -53,7 +53,8 @@ Additional dependencies and why:
 |---|---|---|---|
 | uvicorn | Python runtime | 0.54.0 | ASGI server for FastAPI; serves a pre-bound Unix socket and accepts a custom protocol class for the peer-UID check |
 | h11 | Python runtime | 0.16.0 | (via uvicorn) pure-Python HTTP/1.1 parser; chosen over httptools to keep the frozen sidecar simple |
-| httpx | Python dev | 0.28.1 | tests talk to the real backend over its Unix socket |
+| httpx | Python runtime | 0.28.1 | provider adapters speak each vendor's HTTP API directly (ADR-0006); tests use it over the Unix socket |
+| keyring | Python runtime | 25.7.0 | macOS Keychain access for API keys (ADR-0008); bundled with its metadata in the sidecar |
 | pyinstaller | Python packaging | 6.22.3 | freezes the core into the sidecar (ADR-0003) |
 | hyper, hyper-util, http-body-util, bytes | Rust | 1.12.0 / 0.1.21 / 0.1.5 / 1.12.1 | HTTP/1.1 client over `tokio::net::UnixStream` |
 | tokio | Rust | 1.54.1 | process spawning, Unix sockets, timeouts (already used by Tauri) |

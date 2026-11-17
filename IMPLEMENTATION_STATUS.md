@@ -3,22 +3,25 @@
 Status vocabulary (BRIEF §3): Not started · In progress · Implemented · Tested · Verified ·
 Tested — awaiting manual verification · Blocked.
 
-"Tested" means automated tests pass in this cloud session (Linux) **and** the macOS CI job's
-`pnpm check` step passed (GitHub Actions, macos-15, run 44089303217, commit b2db164). Per-test
-counts on macOS could not be read from here (the log host is blocked by the session proxy); the
-workflow now prints a summary as its last step. Nothing is **Verified** until run on a real Mac by
-a person where the brief needs it.
+"Tested" means automated tests pass in this cloud session (Linux) and, where noted, on the macOS
+CI runner (GitHub Actions macos-15, arm64). Nothing is **Verified** until a person has run the
+acceptance checks on a real Mac where the brief requires it.
 
-_Last updated: 2026-11-17 (end of M2)._
+Latest macOS CI evidence (run 44092029938, commit bc631af = end of M2), from the job's summary:
+Python 352 passed · Vitest 45 passed · Rust 14 unit + 4 e2e passed (the 5th e2e test is
+Linux-only by design) · desktop app tests 6 passed on macOS · frozen sidecar 1 passed · `.app` built.
+The M3 commits have a macOS run queued; its numbers are recorded here once read.
+
+_Last updated: 2026-11-17 (end of M3)._
 
 ## Capabilities
 
 | #    | Capability                                   | Release | Status | Evidence (all via `pnpm check`) | Last run | Blockers |
 |------|----------------------------------------------|---------|--------|----------------------------------|----------|----------|
-| 4.1  | Conversation — text                          | v0.1 | Not started | — | — | — |
+| 4.1  | Conversation — text                          | v0.1 | Tested | `tests/acceptance/test_4_01_text_conversation.py` (10): persists and reloads after a full restart, deltas stream over the event channel, Stop ends the response in < 1 s and keeps the partial text marked interrupted (nothing appended afterwards), a SIGKILL mid-stream leaves "interrupted" not "complete", unconfigured route fails honestly, input validation, auto-title. UI: `ChatScreens.test.tsx`. Real app run under Xvfb against a local model server (screenshot `docs/screenshots/m3-chat-stop-linux.png`) | 2026-11-17 | — |
 | 4.1  | Conversation — voice                         | v0.3 | Not started | — | — | — |
 | 4.2  | Persistent, editable personal memory         | v0.1 | Not started | — | — | — |
-| 4.3  | Model provider switching                     | v0.1 | Not started | — | — | Live smoke tests need a key or Ollama |
+| 4.3  | Model provider switching                     | v0.1 | Tested | Contract tests `tests/unit/test_provider_contracts.py` (49) for all four adapters: streaming, tool calls, 429/5xx/401/400, timeout, connection failure, malformed, truncated, missing key — against fixtures written from the documented wire formats (not recorded live; ADR-0012). `tests/acceptance/test_4_03_providers.py`: switching mid-conversation keeps history, fallback on a simulated 503 is used and audited, saved key masked and absent from DB/logs/exports/API, health checks, refusal when no OS keychain exists. `test_keys_go_to_the_macos_keychain` runs only on macOS (first run queued) | 2026-11-17 | No live smoke test yet: needs Ollama on a Mac or an API key |
 | 4.4  | Browser navigation and automation            | v0.3 | Not started | — | — | — |
 | 4.5  | Desktop observation                          | v0.3 | Not started | — | — | — |
 | 4.6  | Authorized file search and management        | v0.1 | Not started | (directory grants + path resolution exist: `tests/unit/test_policy.py`) | — | — |
@@ -34,7 +37,8 @@ _Last updated: 2026-11-17 (end of M2)._
 | Milestone | State | Evidence |
 |---|---|---|
 | M1 — Walking skeleton | Done (manual Mac run pending) | Linux: desktop app under Xvfb (6 tests); macOS CI: `pnpm check` passed (incl. desktop app tests run on macOS) and `JARVIS-macos-arm64.zip` (22.8 MB, unsigned) built — artifact expires 2026-12-01 |
-| M2 — Trust kernel | Done (native dialog awaiting manual verification) | see 4.10/4.11/4.12 above; last local `pnpm check`: Python 352 passed, Vitest 45 passed, Rust 14 unit + 5 e2e passed, desktop 6 passed, frozen sidecar 1 passed |
+| M2 — Trust kernel | Done (native dialog awaiting manual verification) | see 4.10/4.11/4.12 above; macOS CI run 44092029938 green with the counts at the top |
+| M3 — Conversation and providers | Done (live provider smoke test pending) | see 4.1 text and 4.3; last local `pnpm check`: Python 416 passed + 1 skipped (macOS-only Keychain test), Vitest 50 passed, Rust 15 unit + 5 e2e, desktop 6, frozen sidecar 1 |
 
 M1 details (each item Tested on Linux; covered by the macOS CI check run):
 app launch + UI→Rust→backend round trip (`test_webview_requests_reach_the_backend`), settings survive
@@ -48,9 +52,9 @@ processes, backend exits when the app is SIGKILLed, strict CSP + 5-command capab
 |---|---|---|
 | Repository | `kritxnshu/Jarvis`, started empty | — |
 | Development machine | **Unknown**; founder travelling without the Mac | macOS evidence comes from CI (arm64 runner) |
-| Model API keys | **Unknown** | Providers will show "Not configured" (M3) |
-| Local models (Ollama) | **Unknown** | Ollama adapter will show "unreachable" |
-| Apple Developer ID | **Unknown** | Unsigned build; Gatekeeper warns; no notarization |
+| Model API keys | None; budget is tight (founder, 2026-11-17) | Free-first defaults (ADR-0012): Ollama local; Gemini free tier optional; others "Not configured" |
+| Local models (Ollama) | **Unknown** whether installed | Chat shows "unavailable" until Ollama runs and `ollama pull llama3.2` is done |
+| Apple Developer ID | None for now (founder, 2026-11-17) | Unsigned build; remove quarantine once (README); no notarization |
 
 ## Manual verification steps for the founder (on a Mac)
 
@@ -80,11 +84,14 @@ processes, backend exits when the app is SIGKILLed, strict CSP + 5-command capab
 ## Current position
 
 - **Release:** v0.1 — Trusted core
-- **Milestone:** M2 — Trust kernel — complete apart from the manual native-dialog check.
+- **Milestone:** M3 — Conversation and providers — complete apart from a live provider smoke test.
 - **In progress:** nothing.
 
 ## Next step
 
-M3 — Conversation and providers, slice 1: normalized model interface
-(`jarvis/providers/types.py`: Message, ToolSpec, ToolCall, StreamDelta, Usage, ProviderError) and
-the recorded-fixture contract-test harness (`httpx.MockTransport`), then the Anthropic adapter.
+M4 — Memory, slice 1: migration for `memories`, `memory_events`, FTS5 index and the
+history/memory repositories; confirmation rules enforced in `jarvis.memory` (only the user's
+confirm action can set `confirmed`), with the 4.2 acceptance tests written first.
+
+To try chat on the Mac: install Ollama (ollama.com), run `ollama pull llama3.2`, open JARVIS →
+Command Center. Provider Settings → Ollama → "Test connection" should say Reachable.

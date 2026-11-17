@@ -44,7 +44,7 @@ Served by `backend/src/jarvis/api/app.py` over the Unix socket. Requirements: BR
 There is no route that creates an approval: only the executor does. Unauthenticated requests are
 audited as `auth.rejected`.
 
-Event types today: `task.updated`, `system.stream_opened`, `system.heartbeat` (every 15 s idle), `settings.changed`.
+Event types today: `chat.started`, `chat.delta`, `chat.finished`, `task.updated`, `system.stream_opened`, `system.heartbeat` (every 15 s idle), `settings.changed`.
 The bridge adds `bridge.stream_closed` when the stream ends so the UI can resubscribe.
 
 Registered settings (`config/settings_registry.py`) — only settings something honors:
@@ -52,7 +52,22 @@ Registered settings (`config/settings_registry.py`) — only settings something 
 
 TypeScript types for these payloads are generated into `packages/contracts/src/generated.ts`.
 
+### Providers and conversation (M3)
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/v1/providers` | `ProvidersResponse {providers, routes}`; keys appear only as `credential_hint` (••••abcd) |
+| PUT | `/v1/providers/{id}` | `{base_url?, enabled?, key_optional? (OpenAI-compatible only)}` |
+| PUT | `/v1/providers/{id}/credential` | `{secret}` → Keychain; 503 `keychain_unavailable` when no OS keychain. There is no route that reads a key back |
+| POST | `/v1/providers/{id}/credential/delete` | |
+| POST | `/v1/providers/{id}/check` | connectivity test → `{ok, detail, models, error_kind}` |
+| PUT | `/v1/routes/{task}` | `{chain: [{provider_id, model}]}` ordered fallback; tasks: chat, planning, memory_extraction, vision, embeddings |
+| GET/POST | `/v1/conversations` | list / create `{title}` |
+| GET | `/v1/conversations/{id}/messages` | messages with `status` complete / streaming / interrupted / failed |
+| POST | `/v1/conversations/{id}/messages` | `{text}` → `{user_message_id, message_id}`; the reply streams as `chat.started`, `chat.delta`, `chat.finished` events |
+| POST | `/v1/messages/{id}/stop` | cancels the stream; partial text is saved as interrupted |
+
 ## Planned
 
-`/v1/chat`, `/v1/providers` (M3), `/v1/memory` (M4),
+`/v1/memory` (M4),
 `/v1/files` (M5). There will be no route that creates an approval or confirms a memory from model output.
