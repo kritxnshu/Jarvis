@@ -29,10 +29,7 @@ export const SCREENS: readonly ScreenDef[] = [
     id: "command",
     title: "Command Center",
     summary: "State an intention, follow the conversation and the current task, stop it anytime.",
-    planned: [
-      { name: "Streaming text conversation with stop control", release: "v0.1", milestone: "M3" },
-      { name: "Voice input and barge-in", release: "v0.3", milestone: "M10" },
-    ],
+    planned: [{ name: "Voice input and barge-in", release: "v0.3", milestone: "M10" }],
   },
   {
     id: "activity",
@@ -66,7 +63,6 @@ export const SCREENS: readonly ScreenDef[] = [
     title: "Provider Settings",
     summary: "Model and voice providers, credentials in the Keychain, health and routing.",
     planned: [
-      { name: "Model providers, keys and routing", release: "v0.1", milestone: "M3" },
       { name: "Voice providers", release: "v0.3", milestone: "M10" },
       { name: "Per-provider screen-content opt-in", release: "v0.3", milestone: "M9" },
     ],

@@ -1,4 +1,13 @@
-import type { ApprovalView, AuditEntryView, GrantView, TaskDetail } from "@jarvis/contracts";
+import type {
+  ApprovalView,
+  AuditEntryView,
+  ChatMessageView,
+  ConversationView,
+  GrantView,
+  ProviderView,
+  RouteStepView,
+  TaskDetail,
+} from "@jarvis/contracts";
 
 import type { Setting } from "../bridge/api";
 import { execution } from "./fakeTrust";
@@ -21,6 +30,37 @@ export class FakeBridge implements BackendBridge {
   chainOk = true;
   nativeDialogApproves = true;
   savedExports: string[] = [];
+  conversations: ConversationView[] = [];
+  messages: ChatMessageView[] = [];
+  providers: ProviderView[] = [
+    {
+      id: "ollama",
+      kind: "ollama",
+      display_name: "Ollama (local, free)",
+      base_url: "http://127.0.0.1:11434",
+      key_optional: true,
+      enabled: true,
+      has_credential: false,
+      credential_hint: null,
+      configured: true,
+      retention_policy_url: null,
+    },
+    {
+      id: "anthropic",
+      kind: "anthropic",
+      display_name: "Anthropic",
+      base_url: "https://api.anthropic.com",
+      key_optional: false,
+      enabled: true,
+      has_credential: false,
+      credential_hint: null,
+      configured: false,
+      retention_policy_url: "https://www.anthropic.com/legal/privacy",
+    },
+  ];
+  routes: Record<string, RouteStepView[]> = {
+    chat: [{ provider_id: "ollama", model: "llama3.2" }],
+  };
   private listeners: ((event: BridgeEvent) => void)[] = [];
   settings: Setting[] = [
     {
@@ -53,7 +93,7 @@ export class FakeBridge implements BackendBridge {
     if (method === "GET" && path === "/v1/settings") {
       return respond(200, { settings: this.settings });
     }
-    const trust = this.trust(method, path, body);
+    const trust = this.trust(method, path, body) ?? this.chat(method, path, body);
     if (trust) return respond(trust[0], trust[1]);
     const key = /^\/v1\/settings\/(.+)$/.exec(path)?.[1];
     if (method === "PUT" && key) {
@@ -133,6 +173,95 @@ export class FakeBridge implements BackendBridge {
     if (method === "POST" && revokeId) {
       this.grants = this.grants.filter((g) => g.id !== revokeId);
       return [200, { revoked: revokeId }];
+    }
+    return null;
+  }
+
+  private chat(method: HttpMethod, path: string, body: unknown): [number, unknown] | null {
+    const now = "2026-11-17T10:00:00.000Z";
+    if (method === "GET" && path === "/v1/conversations") {
+      return [200, { conversations: this.conversations }];
+    }
+    if (method === "POST" && path === "/v1/conversations") {
+      const c = {
+        id: `01JCONV${String(this.conversations.length).padStart(19, "0")}`,
+        title: (body as { title: string }).title,
+        created_at: now,
+        updated_at: now,
+      };
+      this.conversations = [c, ...this.conversations];
+      return [200, c];
+    }
+    const msgs = /^\/v1\/conversations\/([A-Z0-9]+)\/messages$/.exec(path)?.[1];
+    if (msgs && method === "GET") {
+      return [200, { messages: this.messages.filter((m) => m.conversation_id === msgs) }];
+    }
+    if (msgs && method === "POST") {
+      const n = this.messages.length;
+      const base = {
+        conversation_id: msgs,
+        provider_id: null,
+        model: null,
+        error: null,
+        created_at: now,
+      };
+      this.messages = [
+        ...this.messages,
+        {
+          ...base,
+          id: `U${String(n)}`,
+          role: "user",
+          status: "complete",
+          content: (body as { text: string }).text,
+        },
+        {
+          ...base,
+          id: `A${String(n)}`,
+          role: "assistant",
+          status: "streaming",
+          content: "",
+          provider_id: "ollama",
+          model: "llama3.2",
+        },
+      ];
+      return [200, { user_message_id: `U${String(n)}`, message_id: `A${String(n)}` }];
+    }
+    const stopId = /^\/v1\/messages\/([A-Z0-9]+)\/stop$/.exec(path)?.[1];
+    if (stopId && method === "POST") {
+      this.messages = this.messages.map((m) =>
+        m.id === stopId ? { ...m, status: "interrupted", error: "stopped by the user" } : m,
+      );
+      return [200, { stopped: true }];
+    }
+    if (method === "GET" && path === "/v1/providers") {
+      return [200, { providers: this.providers, routes: this.routes }];
+    }
+    const cred = /^\/v1\/providers\/([a-z]+)\/credential$/.exec(path)?.[1];
+    if (cred && method === "PUT") {
+      const secret = (body as { secret: string }).secret;
+      this.providers = this.providers.map((p) =>
+        p.id === cred
+          ? {
+              ...p,
+              has_credential: true,
+              configured: true,
+              credential_hint: `••••${secret.slice(-4)}`,
+            }
+          : p,
+      );
+      return [200, this.providers.find((p) => p.id === cred)];
+    }
+    const checkId = /^\/v1\/providers\/([a-z]+)\/check$/.exec(path)?.[1];
+    if (checkId && method === "POST") {
+      return [
+        200,
+        { ok: false, detail: "Not configured", models: [], error_kind: "not_configured" },
+      ];
+    }
+    const task = /^\/v1\/routes\/([a-z_]+)$/.exec(path)?.[1];
+    if (task && method === "PUT") {
+      this.routes = { ...this.routes, [task]: (body as { chain: RouteStepView[] }).chain };
+      return [200, { providers: this.providers, routes: this.routes }];
     }
     return null;
   }

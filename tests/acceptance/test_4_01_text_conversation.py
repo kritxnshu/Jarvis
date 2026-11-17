@@ -169,3 +169,19 @@ def test_unknown_conversation_is_404(tmp_path: Path, effects: tuple[str, EffectL
         b.stop()
     assert r.status_code == 404
     assert isinstance(r, httpx.Response)
+
+
+def test_new_conversations_are_named_after_their_first_message(
+    tmp_path: Path, effects: tuple[str, EffectLog], models: tuple[str, ModelServerState]
+) -> None:
+    b = launch_fixture_backend(tmp_path / "data", effects[0])
+    try:
+        with b.client() as c:
+            configure_local_models(c, models[0])
+            cid = c.post("/v1/conversations", json={"title": "New conversation"}).json()["id"]
+            wait_finished(c, cid, ask(c, cid, "Plan my trip to Lisbon"))
+            ask(c, cid, "second message does not rename it")
+            [conv] = c.get("/v1/conversations").json()["conversations"]
+    finally:
+        b.stop()
+    assert conv["title"] == "Plan my trip to Lisbon"

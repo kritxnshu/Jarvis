@@ -138,6 +138,11 @@ class ChatService:
             conn.execute(
                 "UPDATE conversations SET updated_at = ? WHERE id = ?", (now, conversation_id)
             )
+            if not history:  # name a new conversation after its first message
+                conn.execute(
+                    "UPDATE conversations SET title = ? WHERE id = ? AND title = ?",
+                    (self._redactor.redact(text)[:60], conversation_id, "New conversation"),
+                )
         prompt = (
             Message(Role.SYSTEM, SYSTEM_PROMPT),
             *[Message(Role(m.role), m.content) for m in history if m.content],
