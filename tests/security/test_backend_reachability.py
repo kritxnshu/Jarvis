@@ -195,7 +195,8 @@ def test_launch_secret_and_canary_never_written_to_disk(tmp_path: Path) -> None:
             )
     finally:
         b.stop()
-    _out, err = b.proc.communicate(timeout=5)
+    assert b.proc.stderr is not None
+    err = b.proc.stderr.read()  # process has exited; communicate() would flush the closed stdin
     written = [p for p in (tmp_path / "data").rglob("*") if p.is_file()]
     assert any(p.suffix == ".jsonl" for p in written), "expected a log file to inspect"
     assert any(p.name.startswith("jarvis.sqlite3") for p in written)
