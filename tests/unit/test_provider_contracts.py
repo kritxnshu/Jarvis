@@ -87,7 +87,7 @@ def fixture_handler(case: Case, kind: str, seen: list[httpx.Request] | None = No
 
 def collect(a: HttpAdapter, req: ChatRequest = REQUEST) -> list[StreamEvent]:
     async def go() -> list[StreamEvent]:
-        return [e async for e in a.stream(req)]  # type: ignore[attr-defined]
+        return [e async for e in a.stream(req)]
 
     return asyncio.run(go())
 

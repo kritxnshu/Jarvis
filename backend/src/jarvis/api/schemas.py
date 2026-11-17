@@ -181,3 +181,94 @@ class GrantView(BaseModel):
 
 class GrantList(BaseModel):
     grants: list[GrantView]
+
+
+# ---- M3: providers and conversation ------------------------------------------------------
+
+
+class ProviderView(BaseModel):
+    id: str
+    kind: str
+    display_name: str
+    base_url: str
+    key_optional: bool
+    enabled: bool
+    has_credential: bool
+    credential_hint: str | None
+    configured: bool
+    retention_policy_url: str | None
+
+
+class RouteStepView(BaseModel):
+    provider_id: str
+    model: str
+
+
+class ProvidersResponse(BaseModel):
+    providers: list[ProviderView]
+    routes: dict[str, list[RouteStepView]]
+
+
+class ProviderUpdate(BaseModel):
+    base_url: str | None = None
+    enabled: bool | None = None
+    key_optional: bool | None = None
+
+
+class CredentialUpdate(BaseModel):
+    secret: str
+
+
+class RouteUpdate(BaseModel):
+    chain: list[RouteStepView]
+
+
+class HealthCheckView(BaseModel):
+    ok: bool
+    detail: str
+    models: list[str]
+    error_kind: str | None
+
+
+class ConversationView(BaseModel):
+    id: str
+    title: str
+    created_at: str
+    updated_at: str
+
+
+class ConversationList(BaseModel):
+    conversations: list[ConversationView]
+
+
+class ConversationCreate(BaseModel):
+    title: str = "New conversation"
+
+
+class ChatMessageView(BaseModel):
+    id: str
+    conversation_id: str
+    role: str
+    content: str
+    status: str
+    provider_id: str | None
+    model: str | None
+    error: str | None
+    created_at: str
+
+
+class MessageList(BaseModel):
+    messages: list[ChatMessageView]
+
+
+class SendMessage(BaseModel):
+    text: str
+
+
+class SendResult(BaseModel):
+    user_message_id: str
+    message_id: str
+
+
+class StopResult(BaseModel):
+    stopped: bool

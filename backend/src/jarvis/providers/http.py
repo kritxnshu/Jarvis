@@ -8,7 +8,13 @@ from typing import Any, cast
 
 import httpx
 
-from jarvis.providers.types import ProviderError, ProviderErrorKind
+from jarvis.providers.types import (
+    ChatRequest,
+    HealthResult,
+    ProviderError,
+    ProviderErrorKind,
+    StreamEvent,
+)
 
 DEFAULT_TIMEOUT = httpx.Timeout(60.0, connect=10.0)
 MAX_ERROR_BODY = 2000
@@ -85,6 +91,12 @@ class HttpAdapter:
     @property
     def provider_id(self) -> str:
         return self._id
+
+    def stream(self, request: ChatRequest) -> AsyncIterator[StreamEvent]:
+        raise NotImplementedError
+
+    async def check(self) -> HealthResult:
+        raise NotImplementedError
 
     def _require_key(self) -> str:
         if not self._key:

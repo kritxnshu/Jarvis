@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from jarvis import SCHEMA_VERSION, __version__
 from jarvis.api.auth import LaunchSecretMiddleware
+from jarvis.api.chat_routes import build_chat_router
 from jarvis.api.request_log import RequestLogMiddleware
 from jarvis.api.schemas import (
     HealthResponse,
@@ -61,7 +62,10 @@ def create_app(deps: AppDeps) -> LaunchSecretMiddleware:
         deps.bus.bind_loop(asyncio.get_running_loop())
         if deps.recover_on_startup:
             summary = await recover(deps.services.executor)
-            log.info("startup recovery finished", extra=summary)
+            orphans = deps.services.chat.mark_orphans_interrupted()
+            log.info(
+                "startup recovery finished", extra={**summary, "interrupted_messages": orphans}
+            )
         yield
         deps.bus.close_all()
 
@@ -117,6 +121,7 @@ def create_app(deps: AppDeps) -> LaunchSecretMiddleware:
         return StreamingResponse(stream(), media_type="application/x-ndjson")
 
     app.include_router(build_trust_router(deps.services))
+    app.include_router(build_chat_router(deps.services))
 
     def on_reject(reason: str, path: str) -> None:
         deps.services.audit.append("auth.rejected", {"reason": reason, "path": path})

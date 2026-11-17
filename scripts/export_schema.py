@@ -13,13 +13,25 @@ from jarvis.api.schemas import (
     ApprovalList,
     AuditEntries,
     ChainVerificationView,
+    ConversationCreate,
+    ConversationList,
+    CredentialUpdate,
     ErrorResponse,
     ExecutionView,
     GrantList,
+    HealthCheckView,
     HealthResponse,
+    MessageList,
+    ProvidersResponse,
+    ProviderUpdate,
+    ProviderView,
+    RouteUpdate,
+    SendMessage,
+    SendResult,
     Setting,
     SettingsResponse,
     SettingUpdate,
+    StopResult,
     TaskDetail,
     TaskList,
 )
@@ -39,9 +51,23 @@ OUTPUT_MODELS: tuple[type[BaseModel], ...] = (
     AuditEntries,
     ChainVerificationView,
     GrantList,
+    ProvidersResponse,
+    ProviderView,
+    HealthCheckView,
+    ConversationList,
+    MessageList,
+    SendResult,
+    StopResult,
 )
 # Models the UI sends.
-INPUT_MODELS: tuple[type[BaseModel], ...] = (SettingUpdate,)
+INPUT_MODELS: tuple[type[BaseModel], ...] = (
+    SettingUpdate,
+    ProviderUpdate,
+    CredentialUpdate,
+    RouteUpdate,
+    ConversationCreate,
+    SendMessage,
+)
 
 _SCHEMA_KEYS = {"type", "$ref", "anyOf", "oneOf", "allOf", "enum", "const", "items"}
 

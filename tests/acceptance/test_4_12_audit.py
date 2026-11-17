@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import signal
 import sqlite3
+import time
 from pathlib import Path
 
 import httpx
@@ -13,6 +14,7 @@ from jarvis.trust.approvals import native_confirmation_token
 from jarvis.trust.audit import AUDIT_EVENT_TYPES
 from tests.conftest import CANARY
 from tests.fixtures.effect_server import EffectLog
+from tests.fixtures.model_server import ModelServerState
 from tests.support.backend import BackendProcess, launch_fixture_backend
 
 
@@ -24,7 +26,30 @@ def _task(c: httpx.Client, tool: str, params: dict[str, object] | None = None) -
     return r.json()
 
 
-def _exercise_everything(b: BackendProcess, tmp_path: Path) -> None:
+def _exercise_providers_and_chat(c: httpx.Client, models_url: str) -> None:
+    c.put("/v1/providers/anthropic/credential", json={"secret": CANARY + "-key"})
+    c.post("/v1/providers/anthropic/credential/delete")
+    c.put("/v1/providers/ollama", json={"base_url": models_url})
+    c.put("/v1/providers/openai", json={"base_url": f"{models_url}/v1", "key_optional": True})
+    c.put(
+        "/v1/routes/chat",
+        json={
+            "chain": [
+                {"provider_id": "gemini", "model": "g"},
+                {"provider_id": "ollama", "model": "llama3.2"},
+            ]
+        },
+    )
+    cid = c.post("/v1/conversations", json={"title": "audit"}).json()["id"]
+    mid = c.post(f"/v1/conversations/{cid}/messages", json={"text": "hi"}).json()["message_id"]
+    for _ in range(100):  # gemini is not configured → provider.fallback → ollama answers
+        msgs = c.get(f"/v1/conversations/{cid}/messages").json()["messages"]
+        if any(m["id"] == mid and m["status"] != "streaming" for m in msgs):
+            break
+        time.sleep(0.05)
+
+
+def _exercise_everything(b: BackendProcess, tmp_path: Path, models_url: str) -> None:
     with b.client(timeout=30) as c:  # retries of a hanging tool take a few seconds
         _task(c, "fixture.reconcilable")  # completed + verified
         _task(c, "fixture.reconcilable", {"mode": "hang"})  # uncertain → reconciled
@@ -52,17 +77,18 @@ def _exercise_everything(b: BackendProcess, tmp_path: Path) -> None:
         ).json()
         c.post(f"/v1/grants/{grant['id']}/revoke")
         c.put("/v1/settings/appearance.reduced_motion", json={"value": "on"})
+        _exercise_providers_and_chat(c, models_url)
     with b.client(secret="f" * 64) as bad:
         assert bad.get(f"/v1/health?{CANARY}").status_code == 401  # auth.rejected
 
 
 def test_every_event_type_appears_and_nothing_leaks(
-    tmp_path: Path, effects: tuple[str, EffectLog]
+    tmp_path: Path, effects: tuple[str, EffectLog], models: tuple[str, ModelServerState]
 ) -> None:
     data = tmp_path / "data"
     marker = str(tmp_path / "crash.marker")
     first = launch_fixture_backend(data, effects[0])
-    _exercise_everything(first, tmp_path)
+    _exercise_everything(first, tmp_path, models[0])
     with first.client() as c, pytest.raises(httpx.TransportError):
         c.post(
             "/v1/tasks",

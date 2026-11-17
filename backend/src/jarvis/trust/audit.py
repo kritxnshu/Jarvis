@@ -47,6 +47,11 @@ AUDIT_EVENT_TYPES = frozenset(
         "permission.granted",
         "permission.revoked",
         "settings.changed",
+        "provider.changed",
+        "provider.credential_saved",
+        "provider.credential_deleted",
+        "provider.fallback",
+        "chat.response",
     }
 )
 

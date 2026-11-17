@@ -23,6 +23,7 @@ from jarvis.storage.db import Database
 from jarvis.storage.migrator import apply_migrations
 from jarvis.tools.registry import ToolRegistry, build_production_registry
 from jarvis.trust.redaction import Redactor
+from jarvis.trust.secrets import SecretStore
 
 log = logging.getLogger("jarvis.runtime")
 
@@ -52,7 +53,11 @@ async def _serve(server: uvicorn.Server, sock_list: list[object]) -> None:
     await task
 
 
-def run(config: LaunchConfig, registry: ToolRegistry | None = None) -> int:
+def run(
+    config: LaunchConfig,
+    registry: ToolRegistry | None = None,
+    secrets: SecretStore | None = None,
+) -> int:
     redactor = Redactor()
     redactor.register(config.secret)
     _prepare_data_dir(config.data_dir)
@@ -63,7 +68,7 @@ def run(config: LaunchConfig, registry: ToolRegistry | None = None) -> int:
         applied = apply_migrations(db)
         log.info("database ready", extra={"migrations_applied": applied})
         services = build_services(
-            db, redactor, config.secret, registry or build_production_registry()
+            db, redactor, config.secret, registry or build_production_registry(), secrets=secrets
         )
         bus = services.bus
         app = create_app(AppDeps(secret=config.secret, services=services))
@@ -97,15 +102,16 @@ def run(config: LaunchConfig, registry: ToolRegistry | None = None) -> int:
     return 0
 
 
-def main(registry: ToolRegistry | None = None) -> int:
-    """Entry point. ``registry`` exists for the test harness; production passes nothing."""
+def main(registry: ToolRegistry | None = None, secrets: SecretStore | None = None) -> int:
+    """Entry point. Parameters exist for the test harness; production passes nothing and gets
+    the production tool registry and the macOS Keychain."""
     try:
         config = read_launch_config(sys.stdin.buffer)
     except HandshakeError as exc:
         sys.stderr.write(f"jarvis: handshake failed: {exc}\n")
         return EXIT_HANDSHAKE
     try:
-        return run(config, registry)
+        return run(config, registry, secrets)
     except SocketSetupError as exc:
         log.error("startup failed", extra={"error": str(exc)})
         sys.stderr.write(f"jarvis: startup failed: {exc}\n")

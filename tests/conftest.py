@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from tests.fixtures.effect_server import EffectLog, effect_server
+from tests.fixtures.model_server import ModelServerState, model_server
 from tests.fixtures.tools import SERVER_ENV
 from tests.support.backend import BackendProcess, launch_backend
 
@@ -37,3 +38,10 @@ def effects(monkeypatch: pytest.MonkeyPatch) -> Iterator[tuple[str, EffectLog]]:
     with effect_server() as (url, log):
         monkeypatch.setenv(SERVER_ENV, url)
         yield url, log
+
+
+@pytest.fixture
+def models() -> Iterator[tuple[str, ModelServerState]]:
+    """A local server speaking the Ollama and OpenAI wire formats."""
+    with model_server() as served:
+        yield served

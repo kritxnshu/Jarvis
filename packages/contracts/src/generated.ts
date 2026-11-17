@@ -8,21 +8,36 @@ export interface JarvisContracts {
   AuditEntries?: AuditEntries;
   AuditEntryView?: AuditEntryView;
   ChainVerificationView?: ChainVerificationView;
+  ChatMessageView?: ChatMessageView;
+  ConversationCreate?: ConversationCreate;
+  ConversationList?: ConversationList;
+  ConversationView?: ConversationView;
+  CredentialUpdate?: CredentialUpdate;
   ErrorBody?: ErrorBody;
   ErrorResponse?: ErrorResponse;
   EventEnvelope?: EventEnvelope;
   ExecutionView?: ExecutionView;
   GrantList?: GrantList;
   GrantView?: GrantView;
+  HealthCheckView?: HealthCheckView;
   HealthResponse?: HealthResponse;
   IntentView?: IntentView;
+  MessageList?: MessageList;
   OutstandingAction?: OutstandingAction;
   PlanStep?: PlanStep;
+  ProviderUpdate?: ProviderUpdate;
+  ProviderView?: ProviderView;
+  ProvidersResponse?: ProvidersResponse;
   Receipt?: Receipt;
   ReceiptAction?: ReceiptAction;
+  RouteStepView?: RouteStepView;
+  RouteUpdate?: RouteUpdate;
+  SendMessage?: SendMessage;
+  SendResult?: SendResult;
   Setting?: Setting;
   SettingUpdate?: SettingUpdate;
   SettingsResponse?: SettingsResponse;
+  StopResult?: StopResult;
   TaskDetail?: TaskDetail;
   TaskList?: TaskList;
   TaskView?: TaskView;
@@ -94,6 +109,52 @@ export interface ChainVerificationView {
   first_bad_seq: number | null;
   ok: boolean;
   reason: string | null;
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "ChatMessageView".
+ */
+export interface ChatMessageView {
+  content: string;
+  conversation_id: string;
+  created_at: string;
+  error: string | null;
+  id: string;
+  model: string | null;
+  provider_id: string | null;
+  role: string;
+  status: string;
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "ConversationCreate".
+ */
+export interface ConversationCreate {
+  title?: string;
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "ConversationList".
+ */
+export interface ConversationList {
+  conversations: ConversationView[];
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "ConversationView".
+ */
+export interface ConversationView {
+  created_at: string;
+  id: string;
+  title: string;
+  updated_at: string;
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "CredentialUpdate".
+ */
+export interface CredentialUpdate {
+  secret: string;
 }
 /**
  * This interface was referenced by `JarvisContracts`'s JSON-Schema
@@ -222,12 +283,94 @@ export interface GrantView {
 }
 /**
  * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "HealthCheckView".
+ */
+export interface HealthCheckView {
+  detail: string;
+  error_kind: string | null;
+  models: string[];
+  ok: boolean;
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
  * via the `definition` "HealthResponse".
  */
 export interface HealthResponse {
   schema_version: number;
   status: string;
   version: string;
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "MessageList".
+ */
+export interface MessageList {
+  messages: ChatMessageView[];
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "ProviderUpdate".
+ */
+export interface ProviderUpdate {
+  base_url?: string | null;
+  enabled?: boolean | null;
+  key_optional?: boolean | null;
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "ProviderView".
+ */
+export interface ProviderView {
+  base_url: string;
+  configured: boolean;
+  credential_hint: string | null;
+  display_name: string;
+  enabled: boolean;
+  has_credential: boolean;
+  id: string;
+  key_optional: boolean;
+  kind: string;
+  retention_policy_url: string | null;
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "ProvidersResponse".
+ */
+export interface ProvidersResponse {
+  providers: ProviderView[];
+  routes: {
+    [k: string]: RouteStepView[];
+  };
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "RouteStepView".
+ */
+export interface RouteStepView {
+  model: string;
+  provider_id: string;
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "RouteUpdate".
+ */
+export interface RouteUpdate {
+  chain: RouteStepView[];
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "SendMessage".
+ */
+export interface SendMessage {
+  text: string;
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "SendResult".
+ */
+export interface SendResult {
+  message_id: string;
+  user_message_id: string;
 }
 /**
  * This interface was referenced by `JarvisContracts`'s JSON-Schema
@@ -253,6 +396,13 @@ export interface SettingUpdate {
  */
 export interface SettingsResponse {
   settings: Setting[];
+}
+/**
+ * This interface was referenced by `JarvisContracts`'s JSON-Schema
+ * via the `definition` "StopResult".
+ */
+export interface StopResult {
+  stopped: boolean;
 }
 /**
  * This interface was referenced by `JarvisContracts`'s JSON-Schema

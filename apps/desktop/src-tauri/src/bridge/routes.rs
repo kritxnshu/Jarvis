@@ -45,6 +45,17 @@ pub fn check(method: &str, path: &str) -> Option<Method> {
         ("GET", ["", "v1", "grants"]) => Get,
         ("POST", ["", "v1", "grants"]) => Post,
         ("POST", ["", "v1", "grants", id, "revoke"]) if is_id(id) => Post,
+        ("GET", ["", "v1", "providers"]) => Get,
+        ("PUT", ["", "v1", "providers", p]) if is_name(p) => Put,
+        ("PUT", ["", "v1", "providers", p, "credential"]) if is_name(p) => Put,
+        ("POST", ["", "v1", "providers", p, "credential", "delete"]) if is_name(p) => Post,
+        ("POST", ["", "v1", "providers", p, "check"]) if is_name(p) => Post,
+        ("PUT", ["", "v1", "routes", task]) if ROUTE_TASKS.contains(task) => Put,
+        ("GET", ["", "v1", "conversations"]) => Get,
+        ("POST", ["", "v1", "conversations"]) => Post,
+        ("GET", ["", "v1", "conversations", id, "messages"]) if is_id(id) => Get,
+        ("POST", ["", "v1", "conversations", id, "messages"]) if is_id(id) => Post,
+        ("POST", ["", "v1", "messages", id, "stop"]) if is_id(id) => Post,
         _ => return None,
     };
     Some(route)
@@ -56,6 +67,22 @@ pub fn body_is_allowed(body: Option<&serde_json::Value>) -> bool {
         Some(serde_json::Value::Object(map)) => !map.contains_key("native_confirmation"),
         _ => true,
     }
+}
+
+const ROUTE_TASKS: [&str; 5] = [
+    "chat",
+    "planning",
+    "memory_extraction",
+    "vision",
+    "embeddings",
+];
+
+/// Provider ids: short lowercase names such as `ollama`.
+fn is_name(segment: &str) -> bool {
+    (1..=32).contains(&segment.len())
+        && segment
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
 }
 
 /// Backend identifiers: 26-character ULIDs (Crockford base32, uppercase).
@@ -120,6 +147,36 @@ mod tests {
             ("POST", format!("/v1/approvals/{ID}/decision/x")),
         ] {
             assert_eq!(check(m, &p), None, "{m} {p} should be refused");
+        }
+    }
+
+    #[test]
+    fn conversation_and_provider_routes() {
+        for (m, p) in [
+            ("GET", "/v1/providers".to_owned()),
+            ("PUT", "/v1/providers/ollama".to_owned()),
+            ("PUT", "/v1/providers/anthropic/credential".to_owned()),
+            (
+                "POST",
+                "/v1/providers/anthropic/credential/delete".to_owned(),
+            ),
+            ("POST", "/v1/providers/gemini/check".to_owned()),
+            ("PUT", "/v1/routes/chat".to_owned()),
+            ("GET", "/v1/conversations".to_owned()),
+            ("POST", "/v1/conversations".to_owned()),
+            ("GET", format!("/v1/conversations/{ID}/messages")),
+            ("POST", format!("/v1/conversations/{ID}/messages")),
+            ("POST", format!("/v1/messages/{ID}/stop")),
+        ] {
+            assert!(check(m, &p).is_some(), "{m} {p} should be allowed");
+        }
+        for (m, p) in [
+            ("PUT", "/v1/routes/anything"),
+            ("PUT", "/v1/providers/Ollama"),
+            ("GET", "/v1/providers/ollama/credential"), // keys are never read back
+            ("POST", "/v1/messages/not-an-id/stop"),
+        ] {
+            assert_eq!(check(m, p), None, "{m} {p} should be refused");
         }
     }
 

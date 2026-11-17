@@ -15,6 +15,8 @@ uv run --group packaging pyinstaller \
   --paths backend/src \
   --collect-submodules uvicorn \
   --collect-submodules jarvis \
+  --collect-submodules keyring \
+  --copy-metadata keyring \
   --add-data "$PWD/backend/src/jarvis/storage/migrations/*.sql:jarvis/storage/migrations" \
   --noupx \
   backend/packaging/jarvis_backend.py
