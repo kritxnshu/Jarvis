@@ -13,6 +13,7 @@ jobs:
   linux:
     name: check (Linux)
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: System libraries for Tauri and the headless desktop tests
@@ -50,6 +51,7 @@ jobs:
     name: check + build .app (macOS)
     if: github.event_name != 'push'
     runs-on: macos-15
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6

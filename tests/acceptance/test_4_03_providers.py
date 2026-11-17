@@ -129,39 +129,31 @@ def test_without_an_os_keychain_keys_are_refused_not_stored_elsewhere(tmp_path: 
 
 @pytest.mark.macos
 def test_keys_go_to_the_macos_keychain(tmp_path: Path) -> None:
-    """macOS only: the production backend stores the key in the login Keychain."""
+    """macOS only: the production backend stores the key in the login Keychain.
+
+    Only the item's attributes are read (no `-w`): reading the secret from another process
+    would raise a Keychain access prompt, which nobody can answer on a CI machine.
+    """
     b = launch_backend(tmp_path / "data")
     account = "provider:anthropic:api_key"
+    find = ["security", "find-generic-password", "-s", "ai.jarvis.desktop", "-a", account]
     try:
-        with b.client() as c:
+        with b.client(timeout=30) as c:
             r = c.put("/v1/providers/anthropic/credential", json={"secret": FAKE_KEY})
             assert r.status_code == 200, r.text
-            found = subprocess.run(
-                [
-                    "security",
-                    "find-generic-password",
-                    "-s",
-                    "ai.jarvis.desktop",
-                    "-a",
-                    account,
-                    "-w",
-                ],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            assert found.stdout.strip() == FAKE_KEY
-            c.post("/v1/providers/anthropic/credential/delete")
+            assert r.json()["credential_hint"] == "••••cdef"
+            found = subprocess.run(find, capture_output=True, text=True, timeout=20, check=False)
+            assert found.returncode == 0, found.stderr
+            assert FAKE_KEY not in found.stdout
+            removed = c.post("/v1/providers/anthropic/credential/delete")
+            assert removed.json()["has_credential"] is False
     finally:
         b.stop()
         subprocess.run(
             ["security", "delete-generic-password", "-s", "ai.jarvis.desktop", "-a", account],
             capture_output=True,
+            timeout=20,
             check=False,
         )
-    gone = subprocess.run(
-        ["security", "find-generic-password", "-s", "ai.jarvis.desktop", "-a", account],
-        capture_output=True,
-        check=False,
-    )
+    gone = subprocess.run(find, capture_output=True, timeout=20, check=False)
     assert gone.returncode != 0
