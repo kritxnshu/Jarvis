@@ -52,8 +52,15 @@ def _descendants(pid: int) -> list[int]:
 
 
 def _cmdline(pid: int) -> str:
-    out = subprocess.run(["ps", "-o", "command=", "-p", str(pid)], capture_output=True, text=True)
+    out = subprocess.run(
+        ["ps", "-ww", "-o", "command=", "-p", str(pid)], capture_output=True, text=True
+    )
     return out.stdout.strip()
+
+
+def _parent(pid: int) -> int:
+    out = subprocess.run(["ps", "-o", "ppid=", "-p", str(pid)], capture_output=True, text=True)
+    return int(out.stdout.strip() or 0)
 
 
 @pytest.fixture
@@ -80,16 +87,15 @@ def app() -> Iterator[RunningApp]:
     while time.monotonic() < deadline and not backend_pid:
         for pid in _descendants(launcher.pid):
             cmd = _cmdline(pid)
-            if cmd.endswith(Path(BINARY).name) or cmd.endswith(BINARY):
-                app_pid = pid
             if "-m jarvis" in cmd or "jarvis-backend" in cmd:
                 backend_pid = pid
         time.sleep(0.2)
-    if launcher.pid and _cmdline(launcher.pid).startswith(BINARY):
-        app_pid = launcher.pid
+    if backend_pid:
+        app_pid = _parent(backend_pid)  # the app spawns the backend directly
     try:
         assert backend_pid, "the app never started its backend"
         assert app_pid, "could not identify the app process"
+        assert Path(BINARY).name in _cmdline(app_pid), "backend's parent is not the app"
         data_dirs = list(home.rglob("ai.jarvis.desktop"))
         assert data_dirs, "app data directory not created"
         yield RunningApp(launcher, app_pid, backend_pid, data_dirs[0])

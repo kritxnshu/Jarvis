@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import atexit
 import json
 import os
 import secrets
+import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -53,8 +56,23 @@ class BackendProcess:
             return self.proc.wait(timeout)
 
 
+_SHORT_DIRS: list[Path] = []
+
+
+@atexit.register
+def _remove_short_dirs() -> None:
+    for d in _SHORT_DIRS:
+        shutil.rmtree(d, ignore_errors=True)
+
+
 def make_run_dir(base: Path) -> Path:
+    """A 0700 directory for a test socket. pytest's tmp_path on macOS
+    (/private/var/folders/...) is too deep for the 104-byte socket path limit, so fall back
+    to a short directory under /tmp when needed."""
     run_dir = base / "run"
+    if len(str(run_dir / "backend.sock")) > 100:
+        run_dir = Path(tempfile.mkdtemp(prefix="jr-", dir="/tmp"))
+        _SHORT_DIRS.append(run_dir)
     run_dir.mkdir(exist_ok=True)
     run_dir.chmod(0o700)
     return run_dir

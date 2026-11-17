@@ -9,6 +9,8 @@ from pathlib import Path
 
 DIR_MODE = 0o700
 SOCKET_MODE = 0o600
+# macOS sun_path is 104 bytes including the terminating NUL (Linux: 108).
+MAX_SOCKET_PATH_BYTES = 103
 
 
 class SocketSetupError(Exception):
@@ -32,6 +34,10 @@ def check_private_dir(directory: Path) -> None:
 
 
 def bind_unix_socket(path: Path, backlog: int = 64) -> socket.socket:
+    if len(os.fsencode(path)) > MAX_SOCKET_PATH_BYTES:
+        raise SocketSetupError(
+            f"socket path is {len(os.fsencode(path))} bytes; the limit is {MAX_SOCKET_PATH_BYTES}"
+        )
     check_private_dir(path.parent)
     if path.exists() or path.is_symlink():
         if not stat.S_ISSOCK(path.lstat().st_mode):
