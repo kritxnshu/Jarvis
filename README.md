@@ -10,13 +10,16 @@ deterministic code decides; everything leaves a record.
 
 ## Status
 
-**Nothing is usable yet.** Milestone 0 (assessment and plan) is complete; there is no application
-code. See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for exact status and
-[ROADMAP.md](ROADMAP.md) for what comes next.
+**No user-facing capability works yet.** Milestone 1 (walking skeleton) is built: the desktop app
+starts its Python core over an authenticated Unix socket, all seven screens exist with honest
+"Not available yet" states, and appearance preferences persist. See
+[IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for exact status and evidence.
+
+Try it from source: `uv sync --all-groups && pnpm install && pnpm --filter @jarvis/desktop dev`.
 
 | Release | Contents | State |
 |---|---|---|
-| v0.1 Trusted core | app, approvals, audit, receipts, recovery, text chat, providers, memory, files | Not started |
+| v0.1 Trusted core | app, approvals, audit, receipts, recovery, text chat, providers, memory, files | In progress (M1 of M1–M5) |
 | v0.2 Tasks and terminal | controlled terminal, multi-step planning, background tasks | Not started |
 | v0.3 Browser, screen and voice | browser automation, desktop observation, voice | Not started |
 

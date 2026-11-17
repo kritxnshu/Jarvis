@@ -74,6 +74,12 @@ class EventBus:
             return
         loop.call_soon_threadsafe(self._deliver, event)
 
+    def close_all_threadsafe(self) -> None:
+        """End every open stream; callable from any thread (used at shutdown)."""
+        loop = self._loop
+        if loop is not None and not loop.is_closed():
+            loop.call_soon_threadsafe(self.close_all)
+
     def close_all(self) -> None:
         with self._lock:
             subs = list(self._subs)

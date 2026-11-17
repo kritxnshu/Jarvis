@@ -81,6 +81,8 @@ def run(config: LaunchConfig) -> int:
         server = uvicorn.Server(uv_config)
 
         def request_shutdown() -> None:
+            # End open event streams first so graceful shutdown doesn't wait them out.
+            bus.close_all_threadsafe()
             server.should_exit = True
 
         start_stdin_watchdog(sys.stdin.buffer, request_shutdown)

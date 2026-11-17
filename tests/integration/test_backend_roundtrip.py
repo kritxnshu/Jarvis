@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 
 from jarvis import SCHEMA_VERSION, __version__
@@ -69,6 +70,39 @@ def test_event_stream_delivers_setting_changes(backend: BackendProcess) -> None:
     assert event["type"] == "settings.changed"
     assert event["payload"] == {"key": "appearance.show_status_bar", "value": False}
     assert set(event) == {"type", "id", "ts", "task_id", "schema_version", "payload"}
+
+
+def test_shutdown_with_open_event_stream_is_prompt_and_clean(backend: BackendProcess) -> None:
+    with backend.client() as c, c.stream("GET", "/v1/events") as resp:
+        lines = resp.iter_lines()
+        assert json.loads(next(lines))["type"] == "system.stream_opened"
+        started = time.monotonic()
+        backend.close_stdin()
+        assert backend.proc.wait(5) == 0
+        elapsed = time.monotonic() - started
+    assert elapsed < 1.5, f"shutdown took {elapsed:.2f}s with a stream open"
+    log = (backend.data_dir / "logs" / "backend.jsonl").read_text()
+    assert "graceful shutdown exceeded" not in log
+    assert '"level": "error"' not in log
+
+
+def test_requests_are_logged_without_bodies(backend: BackendProcess) -> None:
+    with backend.client() as c:
+        c.put("/v1/settings/appearance.reduced_motion", json={"value": "on"})
+    backend.stop()
+    entries = [
+        json.loads(line)
+        for line in (backend.data_dir / "logs" / "backend.jsonl").read_text().splitlines()
+    ]
+    requests = [e["fields"] for e in entries if e["msg"] == "request"]
+    assert {
+        "method": "PUT",
+        "path": "/v1/settings/appearance.reduced_motion",
+        "status": 200,
+    }.items() <= requests[0].items()
+    for e in entries:
+        if e["msg"] == "request":
+            assert set(e["fields"]) == {"method", "path", "status", "ms"}  # no body, no headers
 
 
 def test_clean_exit_removes_socket(backend: BackendProcess) -> None:

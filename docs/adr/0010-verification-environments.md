@@ -23,3 +23,9 @@ native dialogs, `lsof` checks against the real app.
 
 ## Consequences
 - The status file will clearly separate Linux-tested from macOS-verified evidence.
+
+## Update (M1, 2026-11-17)
+The founder is travelling without the Mac. Chosen for now: option 1 — `.github/workflows/ci.yml`
+has a `macos-15` job (on pull requests and manual dispatch) that runs `pnpm check` and uploads an
+unsigned `.app`. Linux CI runs on every push. Manual steps for the founder are listed in
+IMPLEMENTATION_STATUS.md.

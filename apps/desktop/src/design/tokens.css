@@ -1,0 +1,100 @@
+/*
+ * JARVIS design tokens — the single source for color, type, spacing, radius and motion.
+ * Tailwind v4 turns every token in @theme into utilities (e.g. --color-ink → text-ink).
+ * Contrast (WCAG AA) is checked against --color-canvas and --color-surface in
+ * src/design/contrast.test.ts.
+ */
+@import "tailwindcss";
+
+@theme {
+  /* Base: deep navy / near-black */
+  --color-canvas: #070b14;
+  --color-surface: #0c1322;
+  --color-surface-raised: #111a2e;
+  --color-line: #1c2740;
+  --color-line-strong: #2a3a5c;
+
+  /* Text */
+  --color-ink: #e6ecf5;
+  --color-ink-muted: #a3b1c7;
+  --color-ink-subtle: #7f8ea8;
+
+  /* Accents: restrained electric blue and cyan */
+  --color-accent: #3b82f6;
+  --color-accent-ink: #7cb2ff;
+  --color-signal: #22d3ee;
+
+  /* States */
+  --color-ok: #34d399;
+  --color-warn: #fbbf24;
+  --color-danger: #f87171;
+
+  /* Type */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+
+  /* Spacing base unit (Tailwind multiplies it: p-4 = 4 × 0.25rem) */
+  --spacing: 0.25rem;
+
+  /* Radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+}
+
+:root {
+  color-scheme: dark;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.motion-base {
+  transition-property: color, background-color, border-color, opacity, transform;
+  transition-duration: var(--duration-base);
+  transition-timing-function: var(--ease-standard);
+}
+
+/* Reduced motion: the user's setting wins; "system" follows the OS preference. */
+:root[data-reduced-motion="on"] *,
+:root[data-reduced-motion="on"] *::before,
+:root[data-reduced-motion="on"] *::after {
+  transition-duration: 0ms !important;
+  animation-duration: 0ms !important;
+  animation-iteration-count: 1 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-reduced-motion="system"] *,
+  :root[data-reduced-motion="system"] *::before,
+  :root[data-reduced-motion="system"] *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

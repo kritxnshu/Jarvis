@@ -43,8 +43,10 @@ or scope-changing product decisions. Record other significant decisions as ADRs 
 
 ## Commands
 
-The check command is `pnpm check` (runs `scripts/check.sh`). **Not created yet — arrives in M1.**
-Until then there is no code to check. See DEVELOPMENT.md for all commands as they land.
+- Setup: `uv sync --all-groups && pnpm install` (Linux also needs webkit2gtk-4.1 dev libs + xvfb).
+- **Check command: `pnpm check`** (`scripts/check.sh`) — must be green before every commit.
+- Dev app: `pnpm --filter @jarvis/desktop dev`. After changing API models:
+  `pnpm --filter @jarvis/contracts generate`. More in DEVELOPMENT.md.
 
 ## Where things are
 

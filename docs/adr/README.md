@@ -7,7 +7,7 @@ Status is one of Proposed, Accepted, Superseded (by ADR-NNNN).
 |---|---|---|
 | [0001](0001-process-model-and-stack.md) | Process model and stack | Accepted |
 | [0002](0002-local-transport-and-auth.md) | Local transport: UDS + stdin secret + peer UID | Accepted |
-| [0003](0003-sidecar-packaging.md) | Freezing and launching the Python sidecar | Proposed — prove in M1 |
+| [0003](0003-sidecar-packaging.md) | Freezing and launching the Python sidecar | Accepted (Linux); macOS pending |
 | [0004](0004-approval-binding-and-native-confirmation.md) | Approval binding and native confirmation | Accepted |
 | [0005](0005-write-ahead-intents-and-recovery.md) | Write-ahead intents and uncertain-action recovery | Accepted |
 | [0006](0006-provider-adapters-without-vendor-sdks.md) | Provider adapters without vendor SDKs | Accepted |

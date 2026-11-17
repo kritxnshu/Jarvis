@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from jarvis import SCHEMA_VERSION, __version__
 from jarvis.api.auth import LaunchSecretMiddleware
+from jarvis.api.request_log import RequestLogMiddleware
 from jarvis.api.schemas import (
     HealthResponse,
     Setting,
@@ -96,7 +97,8 @@ def create_app(deps: AppDeps) -> LaunchSecretMiddleware:
 
         return StreamingResponse(stream(), media_type="application/x-ndjson")
 
-    return LaunchSecretMiddleware(app, deps.secret, deps.on_auth_reject)
+    # Auth runs first: unauthenticated requests are logged by the auth layer, not here.
+    return LaunchSecretMiddleware(RequestLogMiddleware(app), deps.secret, deps.on_auth_reject)
 
 
 def _line(event: EventEnvelope) -> bytes:

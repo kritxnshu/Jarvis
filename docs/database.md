@@ -1,7 +1,6 @@
 # Database
 
-> **Status (M0): no schema exists.** Below is the planned schema; each table moves to the
-> "Implemented" section with its migration number when it lands.
+Code: `backend/src/jarvis/storage/`. File: `<app data>/jarvis.sqlite3` (mode 0600).
 
 ## Engine and conventions (ADR-0007)
 
@@ -15,14 +14,18 @@
 
 ## Implemented
 
-_None yet._
+| Table | Migration | Columns |
+|---|---|---|
+| `schema_migrations` | runner | `version INTEGER PK, name TEXT, checksum TEXT (sha256 of the .sql), applied_at TEXT` |
+| `settings` | 0001_settings | `key TEXT PK, value_json TEXT, updated_at TEXT` — only keys in the settings registry are accepted |
+
+Migrations run inside one transaction each (script + bookkeeping row), so a failing migration
+leaves no partial schema (`tests/unit/test_migrator.py`).
 
 ## Planned
 
 | Table | Milestone | Purpose |
 |---|---|---|
-| `schema_migrations` | M1 | migration tracking |
-| `settings` | M1 | key, JSON value, updated_at |
 | `tasks` | M2 | objective, state (BRIEF §4.9 states), reason, timestamps |
 | `actions` | M2 | task_id, tool, digest, idempotency_key, state, recovery strategy |
 | `action_intents` | M2 | write-ahead intent: action_id, digest, idempotency key, started_at |

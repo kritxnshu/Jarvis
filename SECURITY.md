@@ -1,7 +1,7 @@
 # Security
 
-> **Status: design only (M0).** No security control below exists in code yet. Each control
-> gets a link to its tests when implemented. Requirements: [docs/BRIEF.md](docs/BRIEF.md) §5.2, §5.4, §8.
+Requirements: [docs/BRIEF.md](docs/BRIEF.md) §5.2, §5.4, §8. Section 5 lists which controls exist
+and the tests that cover them; everything else here is design for later milestones.
 
 ## 1. Assets
 
@@ -57,6 +57,23 @@ whole chain consistently. Verification detects edits to individual entries and b
 | Supply chain (PyPI/npm/crates) | Lockfiles committed (uv.lock, pnpm-lock.yaml, Cargo.lock); minimal dependency list with justifications in DEVELOPMENT.md. |
 | macOS-only controls can't be verified from Linux cloud sessions | ADR-0010: such items stay "Tested" or "awaiting manual verification" until run on macOS. |
 
-## 5. Reporting
+## 5. Implemented controls (M1) and their tests
+
+All tests below pass on Linux (`pnpm check`). None has been run on macOS yet (ADR-0010).
+
+| Control | Code | Tests |
+|---|---|---|
+| No TCP/UDP listener (backend, app) | `runtime/uds.py`, `runtime/main.py` | `tests/security/test_backend_reachability.py::test_backend_opens_no_tcp_or_udp_socket`, `tests/desktop/test_desktop_app.py::test_no_tcp_or_udp_listeners_on_app_or_backend` |
+| 0700 run dir / 0600 socket / 0700 data dir; refuses shared or symlinked dirs | `runtime/uds.py`, `src-tauri/src/rundir.rs` | `tests/unit/test_uds.py`, `rundir::tests::*`, `test_running_socket_is_private`, `test_refuses_to_start_with_shared_socket_directory`, `test_app_starts_backend_on_private_socket` |
+| Launch secret: 256-bit CSPRNG, stdin only, constant-time check | `src-tauri/src/secret.rs`, `sidecar.rs`, `api/auth.py` | `test_requests_without_valid_secret_are_rejected` (missing/wrong/scheme/empty), `test_secret_in_query_string_is_not_accepted`, `bridge_e2e::wrong_secret_is_rejected`, `test_backend_rejects_requests_without_the_apps_secret` |
+| Secret not in argv/env of either process | `sidecar.rs` (`env_clear`, fixed PATH) | `test_secret_not_in_process_arguments_or_environment`, `bridge_e2e::secret_is_not_in_backend_argv_or_environment`, `test_desktop_app.py::test_no_secret_in_process_listings` |
+| Peer-UID check per connection | `runtime/peercred.py`, `runtime/protocol.py` | `test_connection_from_unexpected_uid_is_dropped` (Linux `SO_PEERCRED`; macOS `LOCAL_PEERCRED` path untested) |
+| Backend exits when the app dies | `runtime/watchdog.py` | `test_backend_exits_when_stdin_closes`, `test_backend_exits_when_parent_is_killed`, `test_killing_the_app_stops_the_backend` (real app, SIGKILL) |
+| Bridge forwards only allowlisted routes | `src-tauri/src/bridge/routes.rs` | `routes::tests::allowed_routes`, `routes::tests::refused_routes` |
+| Webview: strict CSP, 3 commands only, no generic plugins | `tauri.conf.json`, `capabilities/main.json`, `build.rs` | `tests/security/test_webview_config.py` (static). Runtime check inside WKWebView: **awaiting manual verification on macOS** |
+| Redaction before logs; secrets never on disk | `trust/redaction.py`, `runtime/logging_setup.py` | `tests/unit/test_redaction.py`, `test_launch_secret_and_canary_never_written_to_disk` |
+| Repository secret scan | `scripts/secret_scan.py` | `tests/unit/test_secret_scan.py`; runs in `pnpm check` |
+
+## 6. Reporting
 
 Single-founder project; report issues privately to the repository owner.

@@ -80,13 +80,14 @@ def launch_backend(
     run_dir: Path | None = None,
     extra_env: dict[str, str] | None = None,
     ready_timeout: float = 15.0,
+    command: list[str] | None = None,
 ) -> BackendProcess:
     secret = secret or secrets.token_hex(32)
     run_dir = run_dir or make_run_dir(data_dir.parent)
     socket_path = run_dir / "backend.sock"
     env = {"PATH": os.environ.get("PATH", "/usr/bin:/bin"), **(extra_env or {})}
     proc = subprocess.Popen(
-        [sys.executable, "-m", "jarvis"],
+        command or [sys.executable, "-m", "jarvis"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

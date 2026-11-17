@@ -1,8 +1,7 @@
 # Architecture
 
-> **Status: design only.** As of M0 no code exists. This document describes the architecture the
-> code will follow; each section gains "implemented in …" pointers as milestones land. Decisions
-> are recorded in [docs/adr/](docs/adr/). Requirements: [docs/BRIEF.md](docs/BRIEF.md) §5.
+> **Status (M1):** sections 1–3, 7 (settings only) and 8 are implemented; sections 4–6 and the rest
+> of 7 are design for M2+. Decisions: [docs/adr/](docs/adr/). Requirements: [docs/BRIEF.md](docs/BRIEF.md) §5.
 
 ## 1. Process model
 
@@ -31,7 +30,7 @@ See ADR-0001 (stack/process model), ADR-0002 (transport and auth), ADR-0003 (sid
 
 ## 2. Launch and transport (BRIEF §5.2)
 
-1. Rust creates `<app_data>/run/<launch-id>/` with mode 0700 and generates a 256-bit secret
+1. Rust creates `<app_data>/run/<8 hex>/` with mode 0700 (socket `b.sock`, path ≤103 bytes) and generates a 256-bit secret
    from the OS CSPRNG.
 2. Rust spawns the sidecar with an **empty-but-minimal environment** and no secret in argv/env,
    then writes one JSON line to its stdin: `{"secret": "<hex>", "socket_path": "...", "data_dir": "..."}`.
@@ -51,7 +50,7 @@ See ADR-0001 (stack/process model), ADR-0002 (transport and auth), ADR-0003 (sid
 The transport is behind a `Transport` interface on both sides (Rust: `BackendClient` trait;
 Python: `listen(config) -> Server`) so Windows can use a named pipe with an ACL later.
 
-## 3. Repository layout (planned)
+## 3. Repository layout
 
 ```
 /
