@@ -13,16 +13,15 @@ import uvicorn
 
 from jarvis import __version__
 from jarvis.api.app import AppDeps, create_app
-from jarvis.config.settings_service import SettingsService
-from jarvis.events import EventBus
 from jarvis.runtime.handshake import HandshakeError, LaunchConfig, read_launch_config
 from jarvis.runtime.logging_setup import configure_logging
 from jarvis.runtime.protocol import make_peer_checked_protocol
 from jarvis.runtime.uds import SocketSetupError, bind_unix_socket
 from jarvis.runtime.watchdog import start_stdin_watchdog
+from jarvis.services import build_services
 from jarvis.storage.db import Database
 from jarvis.storage.migrator import apply_migrations
-from jarvis.storage.settings_repo import SettingsRepository
+from jarvis.tools.registry import ToolRegistry, build_production_registry
 from jarvis.trust.redaction import Redactor
 
 log = logging.getLogger("jarvis.runtime")
@@ -53,7 +52,7 @@ async def _serve(server: uvicorn.Server, sock_list: list[object]) -> None:
     await task
 
 
-def run(config: LaunchConfig) -> int:
+def run(config: LaunchConfig, registry: ToolRegistry | None = None) -> int:
     redactor = Redactor()
     redactor.register(config.secret)
     _prepare_data_dir(config.data_dir)
@@ -63,10 +62,11 @@ def run(config: LaunchConfig) -> int:
     try:
         applied = apply_migrations(db)
         log.info("database ready", extra={"migrations_applied": applied})
-        bus = EventBus()
-        app = create_app(
-            AppDeps(secret=config.secret, settings=SettingsService(SettingsRepository(db)), bus=bus)
+        services = build_services(
+            db, redactor, config.secret, registry or build_production_registry()
         )
+        bus = services.bus
+        app = create_app(AppDeps(secret=config.secret, services=services))
         sock = bind_unix_socket(config.socket_path)
         uv_config = uvicorn.Config(
             app,
@@ -97,14 +97,15 @@ def run(config: LaunchConfig) -> int:
     return 0
 
 
-def main() -> int:
+def main(registry: ToolRegistry | None = None) -> int:
+    """Entry point. ``registry`` exists for the test harness; production passes nothing."""
     try:
         config = read_launch_config(sys.stdin.buffer)
     except HandshakeError as exc:
         sys.stderr.write(f"jarvis: handshake failed: {exc}\n")
         return EXIT_HANDSHAKE
     try:
-        return run(config)
+        return run(config, registry)
     except SocketSetupError as exc:
         log.error("startup failed", extra={"error": str(exc)})
         sys.stderr.write(f"jarvis: startup failed: {exc}\n")

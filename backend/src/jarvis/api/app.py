@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import AsyncGenerator, AsyncIterator, Callable
+import logging
+from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
 
@@ -21,21 +22,33 @@ from jarvis.api.schemas import (
     SettingsResponse,
     SettingUpdate,
 )
+from jarvis.api.trust_routes import build_trust_router
 from jarvis.config.settings_service import (
     InvalidSettingValueError,
     SettingsService,
     UnknownSettingError,
 )
 from jarvis.events import EventBus, EventEnvelope
+from jarvis.execution.recovery import recover
+from jarvis.services import Services
+
+log = logging.getLogger("jarvis.api")
 
 
 @dataclass
 class AppDeps:
     secret: str
-    settings: SettingsService
-    bus: EventBus
+    services: Services
     heartbeat_s: float = 15.0
-    on_auth_reject: Callable[[str, str], None] | None = None
+    recover_on_startup: bool = True
+
+    @property
+    def settings(self) -> SettingsService:
+        return self.services.settings
+
+    @property
+    def bus(self) -> EventBus:
+        return self.services.bus
 
 
 def _error(status: int, code: str, message: str) -> JSONResponse:
@@ -46,6 +59,9 @@ def create_app(deps: AppDeps) -> LaunchSecretMiddleware:
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         deps.bus.bind_loop(asyncio.get_running_loop())
+        if deps.recover_on_startup:
+            summary = await recover(deps.services.executor)
+            log.info("startup recovery finished", extra=summary)
         yield
         deps.bus.close_all()
 
@@ -74,6 +90,9 @@ def create_app(deps: AppDeps) -> LaunchSecretMiddleware:
             return _error(404, "unknown_setting", "no such setting")
         except InvalidSettingValueError as exc:
             return _error(422, "invalid_setting_value", str(exc))
+        deps.services.audit.append(
+            "settings.changed", {"key": key, "value": view.value}, actor="user"
+        )
         deps.bus.publish(
             EventEnvelope(type="settings.changed", payload={"key": key, "value": view.value})
         )
@@ -97,8 +116,13 @@ def create_app(deps: AppDeps) -> LaunchSecretMiddleware:
 
         return StreamingResponse(stream(), media_type="application/x-ndjson")
 
+    app.include_router(build_trust_router(deps.services))
+
+    def on_reject(reason: str, path: str) -> None:
+        deps.services.audit.append("auth.rejected", {"reason": reason, "path": path})
+
     # Auth runs first: unauthenticated requests are logged by the auth layer, not here.
-    return LaunchSecretMiddleware(RequestLogMiddleware(app), deps.secret, deps.on_auth_reject)
+    return LaunchSecretMiddleware(RequestLogMiddleware(app), deps.secret, on_reject)
 
 
 def _line(event: EventEnvelope) -> bytes:

@@ -91,7 +91,7 @@ def launch_backend(
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        env={**env, "PYTHONPATH": str(REPO_ROOT / "backend" / "src")},
+        env={**env, "PYTHONPATH": f"{REPO_ROOT / 'backend' / 'src'}:{REPO_ROOT}"},
         cwd=REPO_ROOT,
     )
     assert proc.stdin is not None
@@ -114,3 +114,13 @@ def wait_for_exit(proc: subprocess.Popen[bytes], timeout: float) -> int | None:
         return proc.wait(timeout)
     except subprocess.TimeoutExpired:
         return None
+
+
+FIXTURE_BACKEND = [sys.executable, "-m", "tests.fixtures.backend_entry"]
+
+
+def launch_fixture_backend(data_dir: Path, server_url: str) -> BackendProcess:
+    """The real backend runtime with the test-only fixture tools registered."""
+    return launch_backend(
+        data_dir, command=FIXTURE_BACKEND, extra_env={"JARVIS_FIXTURE_SERVER": server_url}
+    )
