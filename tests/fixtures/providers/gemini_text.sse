@@ -1,0 +1,4 @@
+data: {"candidates":[{"content":{"parts":[{"text":"Hello, "}],"role":"model"},"index":0}],"usageMetadata":{"promptTokenCount":12,"candidatesTokenCount":2}}
+
+data: {"candidates":[{"content":{"parts":[{"text":"Priya."}],"role":"model"},"finishReason":"STOP","index":0}],"usageMetadata":{"promptTokenCount":12,"candidatesTokenCount":5}}
+

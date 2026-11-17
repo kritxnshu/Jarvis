@@ -16,3 +16,4 @@ Status is one of Proposed, Accepted, Superseded (by ADR-NNNN).
 | [0009](0009-contract-generation.md) | Contract generation from Pydantic | Accepted |
 | [0010](0010-verification-environments.md) | Where things can be tested vs verified | Accepted |
 | [0011](0011-check-command-and-tooling.md) | Check command and tooling choices | Accepted |
+| [0012](0012-free-first-defaults.md) | Free-first defaults (Ollama, Gemini free tier, unsigned builds) | Accepted |

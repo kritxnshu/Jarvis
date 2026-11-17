@@ -7,6 +7,7 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn>=0.32",
     "pydantic>=2.9",
+    "httpx>=0.28",
 ]
 
 [dependency-groups]
@@ -14,7 +15,6 @@ dev = [
     "pytest>=8.3",
     "ruff>=0.8",
     "pyright>=1.1.390",
-    "httpx>=0.28",
 ]
 packaging = [
     "pyinstaller>=6.11",
