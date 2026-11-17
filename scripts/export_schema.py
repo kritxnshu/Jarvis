@@ -10,11 +10,18 @@ from typing import Any
 from pydantic import BaseModel
 
 from jarvis.api.schemas import (
+    ApprovalList,
+    AuditEntries,
+    ChainVerificationView,
     ErrorResponse,
+    ExecutionView,
+    GrantList,
     HealthResponse,
     Setting,
     SettingsResponse,
     SettingUpdate,
+    TaskDetail,
+    TaskList,
 )
 from jarvis.events import EventEnvelope
 
@@ -25,6 +32,13 @@ OUTPUT_MODELS: tuple[type[BaseModel], ...] = (
     Setting,
     SettingsResponse,
     EventEnvelope,
+    TaskList,
+    TaskDetail,
+    ExecutionView,
+    ApprovalList,
+    AuditEntries,
+    ChainVerificationView,
+    GrantList,
 )
 # Models the UI sends.
 INPUT_MODELS: tuple[type[BaseModel], ...] = (SettingUpdate,)

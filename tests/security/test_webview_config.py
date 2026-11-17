@@ -17,7 +17,13 @@ REPO = Path(__file__).resolve().parents[2]
 DESKTOP = REPO / "apps" / "desktop"
 TAURI = DESKTOP / "src-tauri"
 
-ALLOWED_COMMANDS = {"backend_status", "backend_request", "subscribe_events"}
+ALLOWED_COMMANDS = {
+    "backend_status",
+    "backend_request",
+    "subscribe_events",
+    "confirm_high_risk_approval",
+    "save_audit_export",
+}
 
 
 def _conf() -> dict[str, Any]:

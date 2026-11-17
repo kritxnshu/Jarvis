@@ -18,7 +18,7 @@ export interface BridgeErrorBody {
   message: string;
 }
 
-export type HttpMethod = "GET" | "PUT";
+export type HttpMethod = "GET" | "PUT" | "POST";
 
 /** Any event delivered on the bridge channel: backend envelopes or bridge notices. */
 export interface BridgeEvent {

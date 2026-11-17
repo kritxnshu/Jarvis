@@ -9,6 +9,20 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from jarvis.api.schemas import (
+    ApprovalList,
+    ApprovalView,
+    AuditEntries,
+    AuditEntryView,
+    ChainVerificationView,
+    ExecutionView,
+    GrantList,
+    GrantView,
+    Receipt,
+    TaskDetail,
+    TaskList,
+    TaskView,
+)
 from jarvis.events import EventEnvelope
 from jarvis.execution.executor import ExecutionError, ExecutionResult
 from jarvis.execution.receipts import build_receipt
@@ -52,29 +66,29 @@ def _error(status: int, code: str, message: str) -> JSONResponse:
     return JSONResponse({"error": {"code": code, "message": message}}, status_code=status)
 
 
-def _approval_view(a: Approval) -> dict[str, Any]:
+def _approval_view(a: Approval) -> ApprovalView:
     view = asdict(a)
     view["status"] = a.status.value
-    return view
+    return ApprovalView.model_validate(view)
 
 
 def build_trust_router(s: Services) -> APIRouter:
     router = APIRouter(prefix="/v1")
 
-    def result_view(r: ExecutionResult) -> dict[str, Any]:
+    def result_view(r: ExecutionResult) -> ExecutionView:
         s.bus.publish(
             EventEnvelope(
                 type="task.updated", task_id=r.task_id, payload={"state": r.task_state.value}
             )
         )
-        return {
-            "task_id": r.task_id,
-            "action_id": r.action_id,
-            "task_state": r.task_state.value,
-            "action_state": r.action_state.value,
-            "approval_id": r.approval_id,
-            "receipt": build_receipt(s.store, r.task_id),
-        }
+        return ExecutionView(
+            task_id=r.task_id,
+            action_id=r.action_id,
+            task_state=r.task_state.value,
+            action_state=r.action_state.value,
+            approval_id=r.approval_id,
+            receipt=Receipt.model_validate(build_receipt(s.store, r.task_id)),
+        )
 
     @router.post("/tasks")
     async def submit(body: TaskSubmit) -> Any:
@@ -89,14 +103,17 @@ def build_trust_router(s: Services) -> APIRouter:
             wanted = TaskState(state) if state else None
         except ValueError:
             return _error(422, "invalid_state", "unknown task state")
-        return {"tasks": [asdict(t) for t in s.store.tasks(wanted)]}
+        return TaskList(tasks=[TaskView.model_validate(asdict(t)) for t in s.store.tasks(wanted)])
 
     @router.get("/tasks/{task_id}")
     def get_task(task_id: str) -> Any:
         task = s.store.task(task_id)
         if task is None:
             return _error(404, "unknown_task", "no such task")
-        return {"task": asdict(task), "receipt": build_receipt(s.store, task_id)}
+        return TaskDetail(
+            task=TaskView.model_validate(asdict(task)),
+            receipt=Receipt.model_validate(build_receipt(s.store, task_id)),
+        )
 
     @router.post("/tasks/{task_id}/review")
     async def review(task_id: str, body: ReviewDecision) -> Any:
@@ -110,7 +127,7 @@ def build_trust_router(s: Services) -> APIRouter:
 
     @router.get("/approvals")
     def pending() -> Any:
-        return {"approvals": [_approval_view(a) for a in s.approvals.pending()]}
+        return ApprovalList(approvals=[_approval_view(a) for a in s.approvals.pending()])
 
     @router.get("/approvals/{approval_id}")
     def get_approval(approval_id: str) -> Any:
@@ -137,11 +154,11 @@ def build_trust_router(s: Services) -> APIRouter:
             limit=body.limit,
             before_seq=body.before_seq,
         )
-        return {"entries": [asdict(e) for e in entries]}
+        return AuditEntries(entries=[AuditEntryView.model_validate(asdict(e)) for e in entries])
 
     @router.get("/audit/verify")
     def audit_verify() -> Any:
-        return asdict(s.audit.verify())
+        return ChainVerificationView.model_validate(asdict(s.audit.verify()))
 
     @router.get("/audit/export/{fmt}")
     def audit_export(fmt: str) -> Any:
@@ -153,7 +170,7 @@ def build_trust_router(s: Services) -> APIRouter:
 
     @router.get("/grants")
     def grants() -> Any:
-        return {"grants": [asdict(g) for g in s.grants.active()]}
+        return GrantList(grants=[GrantView.model_validate(asdict(g)) for g in s.grants.active()])
 
     @router.post("/grants")
     def add_grant(body: GrantCreate) -> Any:
@@ -161,7 +178,7 @@ def build_trust_router(s: Services) -> APIRouter:
             return _error(422, "invalid_scope", "unknown scope type")
         grant = s.grants.add(body.scope_type, body.scope_value, body.expires_at)
         s.audit.append("permission.granted", asdict(grant), actor="user")
-        return asdict(grant)
+        return GrantView.model_validate(asdict(grant))
 
     @router.post("/grants/{grant_id}/revoke")
     def revoke(grant_id: str) -> Any:

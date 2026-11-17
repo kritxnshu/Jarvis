@@ -34,6 +34,11 @@ pub struct UdsClient {
 }
 
 impl UdsClient {
+    /// For the native-confirmation token only; never serialized or sent to the webview.
+    pub fn secret(&self) -> &LaunchSecret {
+        &self.secret
+    }
+
     pub fn new(socket_path: PathBuf, secret: LaunchSecret, timeout: Duration) -> Self {
         Self {
             socket_path,

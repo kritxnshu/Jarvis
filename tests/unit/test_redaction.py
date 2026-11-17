@@ -51,3 +51,10 @@ def test_redact_value_walks_nested_structures() -> None:
 def test_plain_text_is_untouched() -> None:
     text = "settings updated: appearance.reduced_motion=on"
     assert Redactor().redact(text) == text
+
+
+@pytest.mark.parametrize(
+    "text", ["confirm_high_risk_approval", "allow-confirm-high-risk-approval", "disk-utilities-x"]
+)
+def test_words_containing_sk_dash_are_not_secrets(text: str) -> None:
+    assert Redactor().redact(text) == text

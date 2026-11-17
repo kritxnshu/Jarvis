@@ -6,6 +6,8 @@ fn main() {
             "backend_status",
             "backend_request",
             "subscribe_events",
+            "confirm_high_risk_approval",
+            "save_audit_export",
         ]),
     ))
     .expect("failed to run tauri-build");

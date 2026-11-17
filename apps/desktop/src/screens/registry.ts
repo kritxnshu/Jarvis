@@ -31,7 +31,6 @@ export const SCREENS: readonly ScreenDef[] = [
     summary: "State an intention, follow the conversation and the current task, stop it anytime.",
     planned: [
       { name: "Streaming text conversation with stop control", release: "v0.1", milestone: "M3" },
-      { name: "Current task and execution state", release: "v0.1", milestone: "M2" },
       { name: "Voice input and barge-in", release: "v0.3", milestone: "M10" },
     ],
   },
@@ -39,11 +38,7 @@ export const SCREENS: readonly ScreenDef[] = [
     id: "activity",
     title: "Activity Center",
     summary: "Running and background tasks, pending approvals, and items that need your review.",
-    planned: [
-      { name: "Approval queue", release: "v0.1", milestone: "M2" },
-      { name: "Needs review items", release: "v0.1", milestone: "M5" },
-      { name: "Background tasks with progress", release: "v0.2", milestone: "M7" },
-    ],
+    planned: [{ name: "Background tasks with progress", release: "v0.2", milestone: "M7" }],
   },
   {
     id: "memory",
@@ -81,8 +76,6 @@ export const SCREENS: readonly ScreenDef[] = [
     title: "Security Center",
     summary: "Directory access, approvals, terminal policy, OS permissions and the audit log.",
     planned: [
-      { name: "Approval settings and audit history", release: "v0.1", milestone: "M2" },
-      { name: "Directory access grants", release: "v0.1", milestone: "M5" },
       { name: "Terminal policy and allowlist", release: "v0.2", milestone: "M6" },
       { name: "Screen and microphone permissions", release: "v0.3", milestone: "M9" },
     ],
@@ -91,10 +84,7 @@ export const SCREENS: readonly ScreenDef[] = [
     id: "history",
     title: "Task History",
     summary: "Every task's timeline and execution receipt, with the evidence behind its status.",
-    planned: [
-      { name: "Single-action receipts", release: "v0.1", milestone: "M2" },
-      { name: "Multi-step task timelines", release: "v0.2", milestone: "M7" },
-    ],
+    planned: [{ name: "Multi-step task timelines", release: "v0.2", milestone: "M7" }],
   },
   {
     id: "preferences",

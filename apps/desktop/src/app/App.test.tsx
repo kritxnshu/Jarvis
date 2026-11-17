@@ -28,7 +28,8 @@ describe("App shell", () => {
   it("shows an explicit 'Not available yet' state on unbuilt screens", async () => {
     renderApp();
     const user = userEvent.setup();
-    for (const s of SCREENS.filter((x) => x.id !== "preferences")) {
+    const unbuilt = ["command", "memory", "skills", "providers"];
+    for (const s of SCREENS.filter((x) => unbuilt.includes(x.id))) {
       await user.click(screen.getByRole("button", { name: s.title }));
       expect(screen.getByRole("heading", { level: 1, name: s.title })).toBeTruthy();
       expect(screen.getByRole("heading", { name: "Not available yet" })).toBeTruthy();

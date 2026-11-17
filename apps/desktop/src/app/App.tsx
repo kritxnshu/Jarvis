@@ -3,7 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { NotAvailable } from "../components/NotAvailable";
 import { Nav } from "../components/Nav";
 import { StatusBar } from "../components/StatusBar";
+import { ActivityCenter } from "../screens/ActivityCenter";
 import { Preferences } from "../screens/Preferences";
+import { SecurityCenter } from "../screens/SecurityCenter";
+import { TaskHistory } from "../screens/TaskHistory";
 import { screenById, type ScreenId } from "../screens/registry";
 import type { BridgeEvent } from "../bridge/types";
 import {
@@ -13,6 +16,14 @@ import {
   useHealth,
   useSettings,
 } from "./useBackend";
+
+/** Screens with working content; the rest show their "Not available yet" plan. */
+const BUILT_SCREENS: ReadonlySet<ScreenId> = new Set([
+  "preferences",
+  "activity",
+  "security",
+  "history",
+]);
 
 export function App() {
   const [screenId, setScreenId] = useState<ScreenId>("command");
@@ -61,11 +72,11 @@ export function App() {
           </h1>
           <p className="mt-2 max-w-prose text-sm text-ink-muted">{screen.summary}</p>
           <div className="mt-8">
-            {screenId === "preferences" ? (
-              <Preferences settings={settings} save={save} />
-            ) : (
-              <NotAvailable parts={screen.planned} />
-            )}
+            {screenId === "preferences" && <Preferences settings={settings} save={save} />}
+            {screenId === "activity" && <ActivityCenter ready={ready} />}
+            {screenId === "security" && <SecurityCenter ready={ready} />}
+            {screenId === "history" && <TaskHistory ready={ready} />}
+            {!BUILT_SCREENS.has(screenId) && <NotAvailable parts={screen.planned} />}
           </div>
         </main>
       </div>

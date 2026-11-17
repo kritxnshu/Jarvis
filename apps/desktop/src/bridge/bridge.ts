@@ -6,11 +6,15 @@ import type {
   StatusView,
 } from "./types";
 
-/** The three Rust commands the webview is allowed to call (capabilities/main.json). */
+/** The Rust commands the webview is allowed to call (capabilities/main.json). */
 export interface BackendBridge {
   status(): Promise<StatusView>;
   request<T>(method: HttpMethod, path: string, body?: unknown): Promise<BackendResponse<T>>;
   subscribe(onEvent: (event: BridgeEvent) => void): Promise<void>;
+  /** Shows a native macOS dialog; only the shell can attach the confirmation token. */
+  confirmHighRiskApproval<T>(approvalId: string): Promise<BackendResponse<T>>;
+  /** Saves an audit export through a native save dialog. `saved` is null if cancelled. */
+  saveAuditExport(format: "json" | "csv"): Promise<{ saved: string | null }>;
 }
 
 export type InvokeFn = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
@@ -66,6 +70,20 @@ export function createBridge(invoke: InvokeFn, makeChannel: ChannelFactory): Bac
     async subscribe(onEvent) {
       try {
         await invoke("subscribe_events", { onEvent: makeChannel(onEvent) });
+      } catch (err) {
+        throw toBackendError(err);
+      }
+    },
+    async confirmHighRiskApproval<T>(approvalId: string) {
+      try {
+        return (await invoke("confirm_high_risk_approval", { approvalId })) as BackendResponse<T>;
+      } catch (err) {
+        throw toBackendError(err);
+      }
+    },
+    async saveAuditExport(format) {
+      try {
+        return (await invoke("save_audit_export", { format })) as { saved: string | null };
       } catch (err) {
         throw toBackendError(err);
       }

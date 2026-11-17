@@ -5,6 +5,7 @@
 pub enum Method {
     Get,
     Put,
+    Post,
 }
 
 impl Method {
@@ -12,6 +13,7 @@ impl Method {
         match self {
             Method::Get => "GET",
             Method::Put => "PUT",
+            Method::Post => "POST",
         }
     }
 }
@@ -25,22 +27,53 @@ pub fn check(method: &str, path: &str) -> Option<Method> {
         return None;
     }
     let segments: Vec<&str> = path.split('/').collect();
-    match (method, segments.as_slice()) {
-        ("GET", ["", "v1", "health"]) => Some(Method::Get),
-        ("GET", ["", "v1", "settings"]) => Some(Method::Get),
-        ("PUT", ["", "v1", "settings", key]) if is_setting_key(key) => Some(Method::Put),
-        _ => None,
+    use Method::{Get, Post, Put};
+    let route = match (method, segments.as_slice()) {
+        ("GET", ["", "v1", "health"]) => Get,
+        ("GET", ["", "v1", "settings"]) => Get,
+        ("PUT", ["", "v1", "settings", key]) if is_setting_key(key) => Put,
+        ("GET", ["", "v1", "tasks"]) => Get,
+        ("GET", ["", "v1", "tasks", id]) if is_id(id) => Get,
+        ("POST", ["", "v1", "tasks", id, "review"]) if is_id(id) => Post,
+        ("GET", ["", "v1", "approvals"]) => Get,
+        ("GET", ["", "v1", "approvals", id]) if is_id(id) => Get,
+        // Native confirmations are added only by `confirm_high_risk_approval`; the generic
+        // command refuses bodies that carry one (see `body_is_allowed`).
+        ("POST", ["", "v1", "approvals", id, "decision"]) if is_id(id) => Post,
+        ("POST", ["", "v1", "audit", "search"]) => Post,
+        ("GET", ["", "v1", "audit", "verify"]) => Get,
+        ("GET", ["", "v1", "grants"]) => Get,
+        ("POST", ["", "v1", "grants"]) => Post,
+        ("POST", ["", "v1", "grants", id, "revoke"]) if is_id(id) => Post,
+        _ => return None,
+    };
+    Some(route)
+}
+
+/// The generic bridge never forwards a native confirmation token.
+pub fn body_is_allowed(body: Option<&serde_json::Value>) -> bool {
+    match body {
+        Some(serde_json::Value::Object(map)) => !map.contains_key("native_confirmation"),
+        _ => true,
     }
 }
 
-/// Only `[a-z0-9_./]`: no query strings, fragments, percent-encoding or traversal.
+/// Backend identifiers: 26-character ULIDs (Crockford base32, uppercase).
+fn is_id(segment: &str) -> bool {
+    segment.len() == 26
+        && segment
+            .bytes()
+            .all(|b| b.is_ascii_digit() || b.is_ascii_uppercase())
+}
+
+/// Only `[A-Za-z0-9_./]`: no query strings, fragments, percent-encoding or traversal.
 fn is_plain_path(path: &str) -> bool {
     path.starts_with('/')
         && !path.contains("//")
         && !path.contains("..")
         && path
             .bytes()
-            .all(|b| matches!(b, b'a'..=b'z' | b'0'..=b'9' | b'_' | b'.' | b'/'))
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'.' | b'/'))
 }
 
 fn is_setting_key(key: &str) -> bool {
@@ -57,6 +90,48 @@ fn is_setting_key(key: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const ID: &str = "01JABCDEFGHJKMNPQRSTVWXYZ0";
+
+    #[test]
+    fn trust_kernel_routes() {
+        assert_eq!(check("GET", "/v1/tasks"), Some(Method::Get));
+        assert_eq!(check("GET", &format!("/v1/tasks/{ID}")), Some(Method::Get));
+        assert_eq!(
+            check("POST", &format!("/v1/tasks/{ID}/review")),
+            Some(Method::Post)
+        );
+        assert_eq!(
+            check("POST", &format!("/v1/approvals/{ID}/decision")),
+            Some(Method::Post)
+        );
+        assert_eq!(check("POST", "/v1/audit/search"), Some(Method::Post));
+        assert_eq!(check("GET", "/v1/audit/verify"), Some(Method::Get));
+        assert_eq!(
+            check("POST", &format!("/v1/grants/{ID}/revoke")),
+            Some(Method::Post)
+        );
+        for (m, p) in [
+            ("POST", "/v1/tasks".to_owned()), // the UI does not start tool runs (yet)
+            ("POST", "/v1/approvals".to_owned()),
+            ("GET", "/v1/audit/export/json".to_owned()), // only via save_audit_export
+            ("GET", "/v1/tasks/not-an-id".to_owned()),
+            ("GET", format!("/v1/tasks/{}", ID.to_lowercase())),
+            ("POST", format!("/v1/approvals/{ID}/decision/x")),
+        ] {
+            assert_eq!(check(m, &p), None, "{m} {p} should be refused");
+        }
+    }
+
+    #[test]
+    fn native_confirmation_never_passes_the_generic_bridge() {
+        use serde_json::json;
+        assert!(body_is_allowed(Some(&json!({"approve": true}))));
+        assert!(body_is_allowed(None));
+        assert!(!body_is_allowed(Some(
+            &json!({"approve": true, "native_confirmation": "x"})
+        )));
+    }
 
     #[test]
     fn allowed_routes() {
@@ -82,10 +157,11 @@ mod tests {
             ("GET", "/v1/%68ealth"),
             ("GET", "v1/health"),
             ("GET", "/V1/HEALTH"),
+            ("GET", "/v1/Health"),
             ("PUT", "/v1/settings/a..b"),
             ("PUT", "/v1/settings/.a"),
             ("PUT", "/v1/settings/a/b"),
-            ("GET", "/v1/approvals"),
+            ("DELETE", "/v1/approvals"),
             ("get", "/v1/health"),
             ("GET", ""),
         ] {

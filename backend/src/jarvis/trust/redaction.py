@@ -12,7 +12,8 @@ REDACTED = "[REDACTED]"
 # Known secret shapes. Generous on purpose: a false positive costs a log line, a false
 # negative leaks a credential.
 SECRET_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"sk-[A-Za-z0-9_\-]{8,}"),  # OpenAI, Anthropic (sk-ant-...), test canary
+    # OpenAI, Anthropic (sk-ant-...), test canary. Not inside words like "high-risk-approval".
+    re.compile(r"(?<![A-Za-z0-9_])sk-[A-Za-z0-9_\-]{8,}"),
     re.compile(r"AIza[0-9A-Za-z_\-]{20,}"),  # Google API keys
     re.compile(r"\bA(?:KIA|SIA)[0-9A-Z]{16}\b"),  # AWS access key ids
     re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}"),  # GitHub tokens

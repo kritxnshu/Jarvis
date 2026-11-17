@@ -16,6 +16,12 @@ impl LaunchSecret {
     pub fn expose(&self) -> &str {
         &self.0
     }
+
+    /// A fixed secret for cross-language test vectors. Never used outside tests.
+    #[cfg(test)]
+    pub fn from_hex_for_tests(hex: &str) -> Self {
+        Self(hex.to_owned())
+    }
 }
 
 impl fmt::Debug for LaunchSecret {

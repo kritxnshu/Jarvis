@@ -3,6 +3,7 @@
 pub mod bridge;
 mod commands;
 pub mod error;
+pub mod native_confirm;
 pub mod rundir;
 pub mod secret;
 pub mod sidecar;
@@ -80,6 +81,8 @@ pub fn run() {
             commands::backend_status,
             commands::backend_request,
             commands::subscribe_events,
+            commands::confirm_high_risk_approval,
+            commands::save_audit_export,
         ])
         .build(tauri::generate_context!())
         .expect("failed to build the JARVIS application");
